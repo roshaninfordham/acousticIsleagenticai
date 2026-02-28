@@ -11,10 +11,13 @@ import { Progress } from '@/components/ui/progress';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFirestore } from '@/firebase';
 import { logRoyaltyTransaction } from '@/services/royalty-service';
+import { OrchestrationGraph } from './OrchestrationGraph';
 
 interface JamSessionProps {
   onRoyaltyUpdate: (amount: number, stemId: string) => void;
 }
+
+type OrchestrationStep = 'idle' | 'sensing' | 'thinking' | 'retrieving' | 'logging';
 
 export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const { firestore } = useFirestore();
@@ -25,6 +28,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const [status, setStatus] = useState<string>("Initializing hardware...");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDurableRetry, setIsDurableRetry] = useState(false);
+  const [currentStep, setCurrentStep] = useState<OrchestrationStep>('idle');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -33,6 +37,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const stopSession = useCallback(() => {
     setIsRecording(false);
     setIsDurableRetry(false);
+    setCurrentStep('idle');
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -44,6 +49,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
 
   const processChunk = async (blob: Blob, retryCount = 0) => {
     setIsProcessing(true);
+    setCurrentStep('thinking');
     try {
       const reader = new FileReader();
       const dataUri = await new Promise<string>((resolve) => {
@@ -52,11 +58,14 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
       });
 
       setStatus("Gemini 3 Multimodal Inference...");
+      
+      // Simulate orchestration sequence
       const result = await generateDynamicAccompaniment({
         mediaDataUri: dataUri
       });
 
       if (result) {
+        setCurrentStep('retrieving');
         setBpm(result.bpm);
         setCurrentStem(result.stem_name || result.play_stem);
         setEnergy(result.energy_score * 10);
@@ -64,6 +73,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setIsDurableRetry(false);
 
         // Durable Ledger Update
+        setCurrentStep('logging');
         if (firestore) {
           logRoyaltyTransaction(firestore, {
             stemId: result.play_stem,
@@ -73,6 +83,11 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         }
 
         onRoyaltyUpdate(result.royalty_amount, result.play_stem);
+        
+        // Return to sensing mode after brief confirmation
+        setTimeout(() => {
+          if (isRecording) setCurrentStep('sensing');
+        }, 1000);
       }
     } catch (error) {
       console.error("Telemetry failure:", error);
@@ -84,6 +99,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setTimeout(() => processChunk(blob, retryCount + 1), 1000);
       } else {
         setStatus("Network Congestion. Buffering locally...");
+        setCurrentStep('sensing');
       }
     } finally {
       setIsProcessing(false);
@@ -100,6 +116,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
       if (videoRef.current) videoRef.current.srcObject = stream;
       
       setIsRecording(true);
+      setCurrentStep('sensing');
       setStatus("Capturing multi-agent stream...");
 
       const options = { mimeType: 'video/webm;codecs=vp8,opus' };
@@ -130,6 +147,14 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-5xl space-y-6"
     >
+      {/* Orchestration Reasoning Layer */}
+      <OrchestrationGraph 
+        isRecording={isRecording} 
+        isProcessing={isProcessing} 
+        isRetry={isDurableRetry} 
+        step={currentStep} 
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         <div className="space-y-6 md:col-span-2">

@@ -1,0 +1,185 @@
+{
+  "entities": {
+    "Community": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Community",
+      "type": "object",
+      "description": "Represents an indigenous community that owns musical heritage and is entitled to micro-royalties from the usage of their associated audio stems.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Community entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the indigenous community."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the community or their musical heritage relevant to AcousticIsle."
+        },
+        "currentRoyaltyBalance": {
+          "type": "number",
+          "description": "The total accumulated micro-royalty amount in monetary units (e.g., USD cents) for this community."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "currentRoyaltyBalance"
+      ]
+    },
+    "AudioStem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AudioStem",
+      "type": "object",
+      "description": "Represents an ethically sourced audio stem, derived from an indigenous community's musical heritage, used for dynamic AI-generated accompaniment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AudioStem entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "A user-friendly name for the audio stem (e.g., 'Nicobarese Bamboo Percussion Loop')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the audio stem, its musical characteristics, and cultural significance."
+        },
+        "communityId": {
+          "type": "string",
+          "description": "Reference to the Community entity that owns this audio stem. (Relationship: Community 1:N AudioStem)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The category of the musical element (e.g., 'Percussion', 'Vocal Chant', 'Melody', 'Ambient')."
+        },
+        "energyLevel": {
+          "type": "string",
+          "description": "Describes the general energy or mood of the stem (e.g., 'Calm', 'Rhythmic', 'Energetic', 'Intense'). Used by the AI to match user's kinetic energy."
+        },
+        "minBpm": {
+          "type": "number",
+          "description": "The minimum Beats Per Minute (BPM) range suitable for this audio stem."
+        },
+        "maxBpm": {
+          "type": "number",
+          "description": "The maximum Beats Per Minute (BPM) range suitable for this audio stem."
+        },
+        "audioFileUrl": {
+          "type": "string",
+          "description": "The URL or path to the actual audio file for playback.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "communityId",
+        "type",
+        "energyLevel",
+        "minBpm",
+        "maxBpm",
+        "audioFileUrl"
+      ]
+    },
+    "RoyaltyEvent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoyaltyEvent",
+      "type": "object",
+      "description": "Records a single instance of an audio stem being used within a jam session and the corresponding micro-royalty generated for its owning community.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RoyaltyEvent entity."
+        },
+        "stemId": {
+          "type": "string",
+          "description": "Reference to the AudioStem that was used in this event. (Relationship: AudioStem 1:N RoyaltyEvent)"
+        },
+        "communityId": {
+          "type": "string",
+          "description": "Reference to the Community that receives the royalty for this event. (Relationship: Community 1:N RoyaltyEvent)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The micro-royalty amount generated for this specific usage event."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when this royalty event occurred.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "stemId",
+        "communityId",
+        "amount",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/communities/{communityId}",
+        "definition": {
+          "entityName": "Community",
+          "schema": {
+            "$ref": "#/backend/entities/Community"
+          },
+          "description": "Publicly viewable records of indigenous communities, including their names, descriptions, and current accumulated micro-royalty balances. Designed for public read access to display the 'Community Vault' counter. Write access is restricted to authorized backend services for royalty balance updates.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "The unique identifier for an indigenous community."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/audioStems/{audioStemId}",
+        "definition": {
+          "entityName": "AudioStem",
+          "schema": {
+            "$ref": "#/backend/entities/AudioStem"
+          },
+          "description": "Ethically sourced audio stems, representing musical heritage available for AI selection and dynamic accompaniment. Includes `communityId` for direct data linkage to the owning community, facilitating efficient royalty tracking and enabling authorization independence for future, more granular access controls. Read access is global for AI agents.",
+          "params": [
+            {
+              "name": "audioStemId",
+              "description": "The unique identifier for an audio stem."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/royaltyEvents/{royaltyEventId}",
+        "definition": {
+          "entityName": "RoyaltyEvent",
+          "schema": {
+            "$ref": "#/backend/entities/RoyaltyEvent"
+          },
+          "description": "An immutable ledger entry recording each instance of an audio stem's usage and the generated micro-royalty. Includes denormalized `stemId` and `communityId` to ensure authorization independence, allowing for future community-specific or admin-level read access without requiring `get()` calls to parent documents. Write access is strictly limited to the backend service account.",
+          "params": [
+            {
+              "name": "royaltyEventId",
+              "description": "The unique identifier for a royalty event."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for AcousticIsle is designed to be secure, scalable, and debuggable, adhering strictly to the core design principles. The primary goal is to ensure Authorization Independence, meaning security rules do not rely on `get()` operations to parent documents, thereby simplifying atomic operations and debugging.\n\n1.  **Authorization Independence (Denormalization Strategy):**\n    *   The `AudioStem` entity includes a `communityId` field, directly linking it to the `Community` that owns it. Since `AudioStem` documents are globally readable for AI selection, this `communityId` is primarily for data linkage. However, if in the future, certain `AudioStem` attributes required community-specific authorization (e.g., editing rights), the `communityId` would allow rules to directly reference the owning community without a `get()` call to the `/communities` collection. For instance, an admin's role could be checked against a denormalized list of `adminOfCommunities` on their user profile, and then matched against `resource.data.communityId`.\n    *   The `RoyaltyEvent` entity also includes `communityId` and `stemId`. This denormalization is crucial. When logging a royalty event, all necessary contextual information (`stemId`, `communityId`) is contained within the `RoyaltyEvent` document itself. If a future requirement arose for a community administrator to view *their* community's royalty events, rules could check `resource.data.communityId` directly against the authenticated user's `adminOfCommunities` (a denormalized list on the user document or a separate `/user_roles` collection). This avoids inefficient and insecure `get()` calls to the parent `Community` or `AudioStem` documents from the `RoyaltyEvent` rules.\n\n2.  **QAPs (Query-Based Access Patterns) Support:**\n    *   **`/communities`**: Documents in this collection (e.g., `name`, `currentRoyaltyBalance`) are designed for public or authenticated-user read access, allowing the "
+  }
+}

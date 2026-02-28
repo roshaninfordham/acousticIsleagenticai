@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * ACOUSTICISLE SECURITY RULES PHILOSOPHY
+     *
+     * Core Philosophy: 
+     * This ruleset implements a "Public Catalog, Protected Ledger" model. The application functions 
+     * as a transparent platform where musical heritage (Communities) and their assets (AudioStems) 
+     * are publicly discoverable to facilitate AI-driven musical collaboration. Financial 
+     * integrity is maintained by treating the royalty ledger as an immutable, backend-only 
+     * resource to prevent client-side tampering with micro-payments.
+     *
+     * Data Structure:
+     * - /communities/{communityId}: Publicly readable metadata and royalty balances.
+     * - /audioStems/{audioStemId}: Publicly readable audio assets for AI selection.
+     * - /royaltyEvents/{royaltyEventId}: Publicly readable immutable ledger of usage events.
+     *
+     * Key Security Decisions:
+     * - Public Read Access: All collections are set to public read (`if true`) to allow 
+     *   unauthenticated users and AI agents to view the community vault and select audio stems.
+     * - Backend-Only Writes: All write operations (create, update, delete) are strictly 
+     *   prohibited for client-side SDKs. This ensures that royalty balances and event logs 
+     *   can only be modified by trusted backend services using Service Accounts.
+     *
+     * Denormalization for Authorization:
+     * - AudioStems and RoyaltyEvents include `communityId` to allow for future granular 
+     *   access control (e.g., community-specific admins) without requiring cross-document 
+     *   lookups (get() calls), maintaining "Authorization Independence."
+     */
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Publicly viewable records of indigenous communities and their royalty balances.
+     * @path /communities/{communityId}
+     * @allow (get, list) for any user to see the "Community Vault" counter.
+     * @deny (create, update, delete) for all client-side requests; managed by backend services.
+     * @principle Public read access with restricted backend-only writes.
+     */
+    match /communities/{communityId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Ethically sourced audio stems available for AI selection and playback.
+     * @path /audioStems/{audioStemId}
+     * @allow (get, list) for any user or AI agent to browse and select stems.
+     * @deny (create, update, delete) for all client-side requests to ensure asset integrity.
+     * @principle Global read access for decentralized AI agents.
+     */
+    match /audioStems/{audioStemId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Immutable ledger entries for micro-royalty tracking.
+     * @path /royaltyEvents/{royaltyEventId}
+     * @allow (get, list) for transparency into the royalty generation history.
+     * @deny (create, update, delete) for all client-side requests to prevent financial fraud.
+     * @principle Immutable data pattern for financial and audit logs.
+     */
+    match /royaltyEvents/{royaltyEventId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+  }
+}

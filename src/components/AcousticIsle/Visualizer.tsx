@@ -1,14 +1,46 @@
+
 "use client";
 
 import React, { useEffect, useRef } from 'react';
 
 interface VisualizerProps {
   active: boolean;
+  stream: MediaStream | null;
   bpm: number;
 }
 
-export function Visualizer({ active, bpm }: VisualizerProps) {
+export function Visualizer({ active, stream, bpm }: VisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+
+  useEffect(() => {
+    if (active && stream && !audioContextRef.current) {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      source.connect(analyser);
+      
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      dataArrayRef.current = dataArray;
+      sourceRef.current = source;
+    }
+
+    if (!active && audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+      analyserRef.current = null;
+      dataArrayRef.current = null;
+      sourceRef.current = null;
+    }
+  }, [active, stream]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -17,40 +49,47 @@ export function Visualizer({ active, bpm }: VisualizerProps) {
     if (!ctx) return;
 
     let animationFrame: number;
-    let offset = 0;
 
     const render = () => {
       const w = canvas.width;
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      if (active) {
-        const speed = bpm ? bpm / 120 : 1;
-        offset += 0.05 * speed;
+      if (active && analyserRef.current && dataArrayRef.current) {
+        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#7AD2F0'; // Accent color
-        ctx.beginPath();
-        
-        const bars = 40;
-        const barWidth = w / bars;
-        
-        for (let i = 0; i < bars; i++) {
-          const x = i * barWidth;
-          // Create some dynamic motion
-          const noise = Math.sin(offset + i * 0.3) * 15;
-          const noise2 = Math.cos(offset * 0.5 + i * 0.1) * 10;
-          const barHeight = 20 + noise + noise2;
+        const barWidth = (w / dataArrayRef.current.length) * 2.5;
+        let x = 0;
+
+        for (let i = 0; i < dataArrayRef.current.length; i++) {
+          const barHeight = (dataArrayRef.current[i] / 255) * h;
           
-          const gradient = ctx.createLinearGradient(0, h/2 - barHeight/2, 0, h/2 + barHeight/2);
-          gradient.addColorStop(0, '#8C5CD7'); // Primary
-          gradient.addColorStop(1, '#7AD2F0'); // Accent
+          const gradient = ctx.createLinearGradient(0, h, 0, 0);
+          gradient.addColorStop(0, 'rgba(140, 92, 215, 0.2)'); // Primary low
+          gradient.addColorStop(0.5, 'rgba(122, 210, 240, 0.8)'); // Accent mid
+          gradient.addColorStop(1, 'rgba(122, 210, 240, 1)'); // Accent high
           
           ctx.fillStyle = gradient;
-          ctx.fillRect(x + 2, h / 2 - barHeight / 2, barWidth - 4, barHeight);
+          // Draw symmetric bars from middle
+          ctx.fillRect(x, h/2 - barHeight/2, barWidth - 2, barHeight);
+          
+          x += barWidth + 1;
+        }
+
+        // Add a pulsing "heartbeat" line if BPM exists
+        if (bpm > 0) {
+          const time = Date.now() / 1000;
+          const beat = Math.sin(time * (bpm / 60) * Math.PI * 2) * 10;
+          ctx.strokeStyle = 'rgba(122, 210, 240, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, h/2 + beat);
+          ctx.lineTo(w, h/2 + beat);
+          ctx.stroke();
         }
       } else {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        // Flatline idle state
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, h / 2);
@@ -69,8 +108,8 @@ export function Visualizer({ active, bpm }: VisualizerProps) {
   return (
     <canvas 
       ref={canvasRef} 
-      width={800} 
-      height={100} 
+      width={1200} 
+      height={120} 
       className="w-full h-full"
     />
   );

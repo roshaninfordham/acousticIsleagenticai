@@ -17,24 +17,24 @@ export function OrchestrationGraph({ isRecording, isProcessing, isRetry, step }:
   const nodes = [
     { 
       id: 'sensors', 
-      label: 'Telemetry Specialist', 
-      sub: 'Biometric Vision',
+      label: 'Vision Agent', 
+      sub: 'Watching your energy',
       icon: Eye, 
       color: 'text-blue-400', 
       active: isRecording 
     },
     { 
       id: 'audio', 
-      label: 'Rhythmic Analyst', 
-      sub: 'Gemini 3 Audio',
+      label: 'Audio Agent', 
+      sub: 'Listening to your beat',
       icon: Mic, 
       color: 'text-indigo-400', 
       active: isRecording && isProcessing
     },
     { 
       id: 'gemini', 
-      label: 'Ethnomusicologist DJ', 
-      sub: 'Gemini 3 Pro',
+      label: 'Ethno-Musicologist', 
+      sub: 'Interpreting culture',
       icon: Cpu, 
       color: 'text-primary', 
       active: step === 'thinking' 
@@ -42,7 +42,7 @@ export function OrchestrationGraph({ isRecording, isProcessing, isRetry, step }:
     { 
       id: 'llamaindex', 
       label: 'Heritage Engine', 
-      sub: 'LlamaIndex RAG',
+      sub: 'Searching the catalog',
       icon: Search, 
       color: 'text-accent', 
       active: step === 'retrieving' 
@@ -50,7 +50,7 @@ export function OrchestrationGraph({ isRecording, isProcessing, isRetry, step }:
     { 
       id: 'firestore', 
       label: 'Durable Ledger', 
-      sub: 'Firestore Vault',
+      sub: 'Securing royalties',
       icon: Database, 
       color: 'text-emerald-400', 
       active: step === 'logging' 
@@ -58,7 +58,7 @@ export function OrchestrationGraph({ isRecording, isProcessing, isRetry, step }:
   ];
 
   return (
-    <div className="relative w-full h-64 flex items-center justify-between px-12 bg-white/[0.02] rounded-[2.5rem] border border-white/5 overflow-hidden group">
+    <div className="relative w-full h-64 flex items-center justify-between px-12 bg-white/[0.02] rounded-[2.5rem] border border-white/5 overflow-hidden group shadow-inner">
       {/* HUD Grid Background */}
       <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]" />
       
@@ -124,13 +124,6 @@ export function OrchestrationGraph({ isRecording, isProcessing, isRetry, step }:
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="absolute top-1/2 -translate-y-1/2 w-20 h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent shadow-[0_0_20px_#7AD2F0]"
                       />
-                      {/* Swarm Particle */}
-                      <motion.div
-                        initial={{ left: "-5%", scale: 0 }}
-                        animate={{ left: "105%", scale: [0, 1, 0] }}
-                        transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }}
-                        className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full blur-[2px]"
-                      />
                     </>
                   )}
                 </AnimatePresence>
@@ -141,19 +134,9 @@ export function OrchestrationGraph({ isRecording, isProcessing, isRetry, step }:
       })}
 
       {/* Durable Status Badge */}
-      <AnimatePresence>
-        {isRetry && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -20, opacity: 0 }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-destructive/10 border border-destructive/20 px-6 py-2 rounded-full backdrop-blur-xl shadow-2xl"
-          >
-            <ShieldCheck className="w-4 h-4 text-destructive animate-pulse" />
-            <span className="text-[10px] font-bold text-destructive uppercase tracking-widest">Durable Mode: Self-Healing Active</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2">
+         <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[1em]">The AI Orchestration Swarm</span>
+      </div>
     </div>
   );
 }

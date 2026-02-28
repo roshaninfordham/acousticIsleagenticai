@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StopCircle, Activity, Zap, Cpu, Mic, Eye, Database, Move, AlertCircle, Loader2, Gauge } from 'lucide-react';
+import { StopCircle, Activity, Zap, Cpu, Mic, Eye, Database, Move, AlertCircle, Loader2, Gauge, Info, Terminal, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,8 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const [bpm, setBpm] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number>(0);
   const [currentStem, setCurrentStem] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("Ready to initialize agents.");
+  const [status, setStatus] = useState<string>("System Ready. Awaiting Mission Command.");
+  const [logs, setLogs] = useState<string[]>(["[KERNEL] Initialization successful.", "[SWARM] Agents awaiting hardware link."]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState<OrchestrationStep>('idle');
   const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
@@ -35,6 +36,10 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  const addLog = (msg: string) => {
+    setLogs(prev => [...prev.slice(-4), `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  };
 
   const stopSession = useCallback(() => {
     setIsRecording(false);
@@ -46,13 +51,15 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
-    setStatus("Swarm deactivated.");
+    setStatus("Mission Deactivated.");
+    addLog("Hardware link severed.");
   }, []);
 
   const processChunk = async (blob: Blob) => {
     if (!isRecording) return;
     setIsProcessing(true);
     setCurrentStep('thinking');
+    addLog("Orchestrator: Analyzing 5s multimodal packet...");
     
     try {
       const reader = new FileReader();
@@ -61,8 +68,6 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         reader.readAsDataURL(blob);
       });
 
-      setStatus("Gemini 3: Analyzing kinetic & rhythmic telemetry...");
-      
       const result = await generateDynamicAccompaniment({
         mediaDataUri: dataUri
       });
@@ -72,7 +77,8 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setBpm(result.bpm);
         setCurrentStem(result.stem_name || result.play_stem);
         setEnergy(result.energy_score * 10);
-        setStatus(`Swarm Decision: Playing ${result.stem_name}`);
+        setStatus(`Agent Decision: Playing ${result.stem_name}`);
+        addLog(`LlamaIndex: Heritage retrieved (${result.stem_name})`);
 
         setCurrentStep('logging');
         if (firestore) {
@@ -84,17 +90,19 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         }
 
         onRoyaltyUpdate(result.royalty_amount, result.play_stem);
+        addLog(`Ledger: Micro-payment of $${result.royalty_amount.toFixed(4)} secured.`);
         
         setTimeout(() => {
           if (isRecording) {
             setCurrentStep('sensing');
-            setStatus("Watching for biometric shifts...");
+            setStatus("Scanning for biometric shifts...");
           }
         }, 1500);
       }
     } catch (error) {
       console.error("Inference failure:", error);
-      setStatus("Sync lost. Retrying swarm connection...");
+      setStatus("Sync lost. Durable Execution enabled.");
+      addLog("SYNC ALERT: Retrying multimodal link...");
       setCurrentStep('sensing');
     } finally {
       setIsProcessing(false);
@@ -104,6 +112,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const startSession = async () => {
     setIsCalibrating(true);
     setStatus("Establishing secure hardware link...");
+    addLog("Calibrating Vision & Audio sensors...");
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -116,12 +125,12 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
       
       setHasPermissions(true);
       
-      // Artificial delay for futuristic calibration feel
       setTimeout(() => {
         setIsCalibrating(false);
         setIsRecording(true);
         setCurrentStep('sensing');
-        setStatus("Swarm Active: Move or make sound to lead.");
+        setStatus("Swarm Online: Move or Sound to Lead.");
+        addLog("Agents Online. Telemetry loop started.");
 
         const options = { mimeType: 'video/webm;codecs=vp8,opus' };
         const mediaRecorder = new MediaRecorder(stream, options);
@@ -133,7 +142,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
           }
         };
 
-        // Emit every 5 seconds for deeper analysis as requested
+        // 5-second window for deeper reasoning
         mediaRecorder.start(5000);
       }, 2000);
 
@@ -141,7 +150,8 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
       console.error("Hardware access denied:", err);
       setHasPermissions(false);
       setIsCalibrating(false);
-      setStatus("Hardware permissions required.");
+      setStatus("Permissions Error: Check Browser.");
+      addLog("CRITICAL: Hardware link failed.");
     }
   };
 
@@ -153,7 +163,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
     <motion.div 
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-7xl space-y-12"
+      className="w-full max-w-7xl space-y-10"
     >
       <OrchestrationGraph 
         isRecording={isRecording} 
@@ -175,6 +185,28 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                 className={`w-full h-full object-cover transition-all duration-1000 ${isRecording ? 'opacity-100' : 'opacity-0 scale-105 blur-lg'}`}
               />
               
+              {isRecording && (
+                <div className="absolute inset-0 z-10 pointer-events-none">
+                  <div className="absolute top-0 left-0 w-full h-full border-[20px] border-accent/5" />
+                  <div className="absolute top-1/2 left-4 -translate-y-1/2 flex flex-col gap-2">
+                    <div className="w-1 h-20 bg-accent/20 rounded-full overflow-hidden">
+                       <motion.div 
+                        animate={{ height: [`${energy}%`, `${energy * 0.8}%`, `${energy * 1.1}%`] }}
+                        className="w-full bg-accent" 
+                       />
+                    </div>
+                    <span className="text-[8px] font-bold text-accent uppercase vertical-text">KINETIC</span>
+                  </div>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
+                  <div className="absolute top-4 left-4 flex gap-4">
+                     <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1 rounded border border-white/10">
+                        <Radio className="w-3 h-3 text-red-500 animate-pulse" />
+                        <span className="text-[8px] font-mono">MISSION_LIVE</span>
+                     </div>
+                  </div>
+                </div>
+              )}
+
               <AnimatePresence>
                 {(!isRecording && !isCalibrating) && (
                   <motion.div 
@@ -195,29 +227,14 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                          <Zap className="w-8 h-8 text-primary" />
                       </motion.div>
                       <div className="space-y-4">
-                        <h2 className="text-3xl font-bold font-headline tracking-tight">Lead the Musical Swarm</h2>
-                        <div className="grid grid-cols-2 gap-4 text-left">
-                          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
-                             <div className="flex items-center gap-2 text-accent">
-                               <Move className="w-4 h-4" />
-                               <span className="text-[10px] font-bold uppercase tracking-widest">Vision</span>
-                             </div>
-                             <p className="text-[10px] text-muted-foreground leading-relaxed">Sway, dance, or move your hands to set the energy.</p>
-                          </div>
-                          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
-                             <div className="flex items-center gap-2 text-primary">
-                               <Mic className="w-4 h-4" />
-                               <span className="text-[10px] font-bold uppercase tracking-widest">Audio</span>
-                             </div>
-                             <p className="text-[10px] text-muted-foreground leading-relaxed">Hum, tap, or sing to set the rhythmic tempo.</p>
-                          </div>
-                        </div>
-
+                        <h2 className="text-3xl font-bold font-headline tracking-tight">Mission Control</h2>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.2em]">Move your body or make sounds to trigger the Swarm.</p>
+                        
                         {hasPermissions === false && (
                           <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-left">
                             <AlertCircle className="h-4 w-4" />
                             <AlertTitle>Hardware Access Required</AlertTitle>
-                            <AlertDescription className="text-[11px]">Please enable Camera and Microphone to interact with the swarm.</AlertDescription>
+                            <AlertDescription className="text-[11px]">Please enable Camera and Microphone in browser settings.</AlertDescription>
                           </Alert>
                         )}
                       </div>
@@ -232,37 +249,15 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 backdrop-blur-2xl z-30"
                   >
                     <Loader2 className="w-12 h-12 text-accent animate-spin mb-6" />
-                    <p className="text-sm font-bold text-accent uppercase tracking-[0.4em] animate-pulse">Sensors Calibrating...</p>
-                    <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest">Establishing secure telemetry link</p>
+                    <p className="text-sm font-bold text-accent uppercase tracking-[0.4em] animate-pulse">Sensors Warming Up...</p>
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {isRecording && (
-                <>
-                  <div className="absolute top-8 left-8 z-30">
-                    <Badge className="bg-red-500/90 backdrop-blur-xl text-white gap-3 border-none shadow-2xl px-5 py-2 font-black tracking-[0.2em] text-[10px]">
-                      <motion.span 
-                        animate={{ opacity: [1, 0, 1] }}
-                        transition={{ repeat: Infinity, duration: 1.5 }}
-                        className="w-2 h-2 rounded-full bg-white" 
-                      />
-                      SWARM_ORCHESTRATION_ACTIVE
-                    </Badge>
-                  </div>
-                  <div className="absolute inset-0 pointer-events-none opacity-20">
-                     <div className="absolute inset-0 border border-accent/20 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-                     <div className="h-full w-full flex items-center justify-center">
-                        <div className="w-[80%] h-[80%] border-2 border-dashed border-accent/10 rounded-full animate-[spin_20s_linear_infinite]" />
-                     </div>
-                  </div>
-                </>
-              )}
             </div>
             
-            <div className="p-10 space-y-10">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="flex items-center gap-10 w-full md:w-auto">
+            <div className="p-8 space-y-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex items-center gap-8 w-full md:w-auto">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em]">Tempo (BPM)</p>
                     <p className="text-5xl font-headline font-bold text-accent tracking-tighter tabular-nums">
@@ -270,9 +265,9 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     </p>
                   </div>
                   <div className="h-16 w-px bg-white/10" />
-                  <div className="space-y-3 flex-1 min-w-[320px]">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em]">Agent Conversation</p>
-                    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center gap-4">
+                  <div className="space-y-3 flex-1">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em]">Active Command</p>
+                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-4 min-w-[300px]">
                       {isProcessing ? (
                         <Loader2 className="w-5 h-5 animate-spin text-primary" />
                       ) : (
@@ -289,15 +284,15 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     <Button 
                       onClick={startSession} 
                       disabled={isCalibrating}
-                      className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white gap-4 px-12 h-20 rounded-full shadow-2xl transition-all hover:scale-105 font-black text-lg group"
+                      className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white gap-4 px-10 h-16 rounded-full shadow-2xl transition-all hover:scale-105 font-black text-sm uppercase tracking-widest"
                     >
-                      {isCalibrating ? "Starting..." : "Initialize Swarm"}
+                      {isCalibrating ? "Initializing..." : "Initialize Swarm"}
                     </Button>
                   ) : (
                     <Button 
                       onClick={stopSession} 
                       variant="destructive" 
-                      className="w-full md:w-auto gap-4 px-12 h-20 rounded-full shadow-2xl transition-all hover:scale-105 font-black text-lg"
+                      className="w-full md:w-auto gap-4 px-10 h-16 rounded-full shadow-2xl transition-all hover:scale-105 font-black text-sm uppercase tracking-widest"
                     >
                       <StopCircle className="w-6 h-6" />
                       Deactivate
@@ -306,7 +301,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                 </div>
               </div>
 
-              <div className="h-32 w-full bg-black/40 rounded-[2.5rem] border border-white/5 overflow-hidden relative group">
+              <div className="h-24 w-full bg-black/40 rounded-2xl border border-white/5 overflow-hidden relative">
                 <Visualizer active={isRecording} stream={streamRef.current} bpm={bpm || 0} />
               </div>
             </div>
@@ -314,28 +309,39 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-          <Card className="glass-card p-10 border-white/5 h-full flex flex-col shadow-2xl relative overflow-hidden">
-            <div className="space-y-12 relative z-10 flex-1">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-accent/20 rounded-2xl">
-                    <Gauge className="w-8 h-8 text-accent" />
-                  </div>
-                  <h3 className="text-2xl font-headline font-bold tracking-tight">Live Telemetry</h3>
+          <Card className="glass-card p-8 border-white/5 h-full flex flex-col shadow-2xl">
+            <div className="space-y-10 relative z-10 flex-1">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-accent/20 rounded-xl">
+                  <Gauge className="w-6 h-6 text-accent" />
                 </div>
+                <h3 className="text-xl font-headline font-bold tracking-tight">Mission Logs</h3>
               </div>
 
-              <div className="space-y-12">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <p className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">Kinetic Intensity</p>
-                    <p className="text-3xl font-headline font-bold text-accent">{Math.round(energy)}%</p>
+              <div className="space-y-6">
+                <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-[10px] space-y-2 h-48 overflow-hidden">
+                  <div className="flex items-center gap-2 text-primary border-b border-white/5 pb-2 mb-2">
+                    <Terminal className="w-3 h-3" />
+                    <span className="font-bold">LIVE TELEMETRY FEED</span>
                   </div>
-                  <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden shadow-inner">
+                  {logs.map((log, i) => (
+                    <div key={i} className="text-muted-foreground/80 animate-in slide-in-from-left-2">
+                      {log}
+                    </div>
+                  ))}
+                  {isProcessing && <div className="text-accent animate-pulse">&gt;&gt; INFERENCE IN PROGRESS...</div>}
+                </div>
+
+                <div className="space-y-4 pt-4">
+                  <div className="flex justify-between items-end">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Kinetic Intensity</p>
+                    <p className="text-2xl font-headline font-bold text-accent">{Math.round(energy)}%</p>
+                  </div>
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${energy}%` }}
-                      className="h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_15px_rgba(122,210,240,0.5)]"
+                      className="h-full bg-gradient-to-r from-primary to-accent"
                     />
                   </div>
                 </div>
@@ -343,29 +349,24 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                 <AnimatePresence mode="wait">
                   <motion.div 
                     key={currentStem}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    className="p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 space-y-4 relative overflow-hidden backdrop-blur-xl shadow-2xl"
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3"
                   >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 rounded-bl-[3rem] blur-xl" />
-                    <div className="space-y-2 relative z-10">
-                      <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Active Heritage Loop</p>
-                      <p className="text-xl font-headline font-bold text-foreground leading-tight">
-                        {currentStem || "Awaiting Performance..."}
-                      </p>
-                    </div>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Active Stem</p>
+                    <p className="text-lg font-headline font-bold text-foreground leading-tight">
+                      {currentStem || "Awaiting Telemetry..."}
+                    </p>
                   </motion.div>
                 </AnimatePresence>
               </div>
             </div>
-
-            <div className="pt-10 mt-auto border-t border-white/10">
-              <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5">
-                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest leading-relaxed">
-                   The <span className="text-white">Swarm</span> interprets your presence. Minimal movements or sounds are amplified through our <span className="text-accent">Multimodal Ingestion Pipeline</span>.
-                 </p>
-              </div>
+            
+            <div className="pt-8 mt-auto border-t border-white/5">
+               <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                  <Info className="w-4 h-4 text-accent" />
+                  Guide: Move for energy, Sound for tempo.
+               </div>
             </div>
           </Card>
         </div>

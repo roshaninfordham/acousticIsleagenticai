@@ -1,10 +1,7 @@
-
 'use server';
 /**
- * @fileOverview The "AcousticIsle Brain" - A multimodal Genkit flow that orchestrates 
- * musical decisions based on physical and rhythmic telemetry.
- *
- * - Now integrates LlamaIndex for semantic heritage retrieval.
+ * @fileOverview The "AcousticIsle Brain" - A multimodal Genkit flow using Gemini 3 Flash
+ * for high-speed semantic orchestration and heritage retrieval.
  */
 
 import { ai } from '@/ai/genkit';
@@ -15,7 +12,7 @@ const GenerateDynamicAccompanimentInputSchema = z.object({
   mediaDataUri: z
     .string()
     .describe(
-      "A 3-second multimodal snippet (webm/mp4) as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A 3-second multimodal snippet as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type GenerateDynamicAccompanimentInput = z.infer<typeof GenerateDynamicAccompanimentInputSchema>;
@@ -31,13 +28,12 @@ const GenerateDynamicAccompanimentOutputSchema = z.object({
 });
 export type GenerateDynamicAccompanimentOutput = z.infer<typeof GenerateDynamicAccompanimentOutputSchema>;
 
-// Tool for Semantic Retrieval using LlamaIndex
 const retrieveHeritageStem = ai.defineTool(
   {
     name: 'retrieveHeritageStem',
-    description: 'Retrieves the most culturally appropriate audio stem based on user mood and energy.',
+    description: 'Retrieves the most culturally appropriate audio stem based on user mood and energy using LlamaIndex.',
     inputSchema: z.object({
-      context: z.string().describe('The musical context (e.g., "high energy dancing", "slow swaying").'),
+      context: z.string().describe('The musical context (e.g., "high energy dancing").'),
     }),
     outputSchema: z.any(),
   },
@@ -56,19 +52,16 @@ const dynamicAccompanimentPrompt = ai.definePrompt({
   name: 'dynamicAccompanimentPrompt',
   input: { schema: GenerateDynamicAccompanimentInputSchema },
   output: { schema: GenerateDynamicAccompanimentOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-3-flash-preview',
   tools: [retrieveHeritageStem],
-  prompt: `You are the "Ethnomusicologist DJ" Lead Orchestrator for AcousticIsle. 
-Your goal is to cross-reference video and audio telemetry to protect and promote indigenous musical heritage.
+  prompt: `You are the Lead Orchestrator for AcousticIsle. 
+Use your multimodal vision to cross-reference video and audio telemetry.
 
-Analyze the provided 3-second multimodal stream:
-1. **Telemetry Analyst Layer**: Observe the kinetic energy. Is the user dancing, swaying, or stationary? Assign an energy score (1-10).
-2. **Rhythmic Analyst Layer**: Listen for tapping, humming, or vocalizing. Calculate the approximate BPM.
-3. **Heritage Retrieval**: Use the 'retrieveHeritageStem' tool to find a culturally accurate stem based on the energy and rhythm.
+1. Analyze Kinetic Energy: Dancing, swaying, or stationary?
+2. Analyze Rhythm: Tapping, humming, or vocalizing?
+3. Retrieve Heritage: Use 'retrieveHeritageStem' to find the best matching indigenous stem.
 
-Calculate a micro-royalty (royalty_amount) between $0.01 and $0.10 based on the complexity and duration of the usage.
-
-Return your decision in strict JSON format.
+Calculate a micro-royalty based on usage intensity.
 
 Input Stream: {{media url=mediaDataUri}}`,
 });
@@ -82,7 +75,7 @@ const generateDynamicAccompanimentFlow = ai.defineFlow(
   async (input) => {
     const { output } = await dynamicAccompanimentPrompt(input);
     if (!output) {
-      throw new Error('Failed to orchestrate musical decision.');
+      throw new Error('Failed to orchestrate musical decision with Gemini 3 Flash.');
     }
     return output;
   }

@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, StopCircle, RefreshCw, Activity, Zap, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Camera, StopCircle, RefreshCw, Activity, Zap, ShieldCheck, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,9 +22,8 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const [bpm, setBpm] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number>(0);
   const [currentStem, setCurrentStem] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("Ready to start...");
+  const [status, setStatus] = useState<string>("Initializing hardware...");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorCount, setErrorCount] = useState(0);
   const [isDurableRetry, setIsDurableRetry] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -47,9 +45,13 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const processChunk = async (blob: Blob, retryCount = 0) => {
     setIsProcessing(true);
     try {
-      const dataUri = await blobToDataUri(blob);
+      const reader = new FileReader();
+      const dataUri = await new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
 
-      setStatus("LlamaIndex Semantic Routing...");
+      setStatus("Gemini 3 Multimodal Inference...");
       const result = await generateDynamicAccompaniment({
         mediaDataUri: dataUri
       });
@@ -59,7 +61,6 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setCurrentStem(result.stem_name || result.play_stem);
         setEnergy(result.energy_score * 10);
         setStatus(`Orchestrated: ${result.stem_name || result.play_stem}`);
-        setErrorCount(0);
         setIsDurableRetry(false);
 
         // Durable Ledger Update
@@ -76,14 +77,13 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
     } catch (error) {
       console.error("Telemetry failure:", error);
       
-      // Durable Execution Pattern: Retry with backoff if within limits
+      // Durable Execution Pattern: Retry with backoff
       if (retryCount < 2) {
         setIsDurableRetry(true);
-        setStatus(`Durable Retry Mode (Attempt ${retryCount + 1})...`);
+        setStatus(`Durable Retry (Attempt ${retryCount + 1})...`);
         setTimeout(() => processChunk(blob, retryCount + 1), 1000);
       } else {
-        setErrorCount(prev => prev + 1);
-        setStatus("Network Congestion. Using Local Buffer...");
+        setStatus("Network Congestion. Buffering locally...");
       }
     } finally {
       setIsProcessing(false);
@@ -112,21 +112,12 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         }
       };
 
-      // Rolling 3-second chunks as per optimized sensor layer guidance
       mediaRecorder.start(3000);
 
     } catch (err) {
       console.error("Hardware access denied:", err);
       setStatus("Media hardware unavailable.");
     }
-  };
-
-  const blobToDataUri = (blob: Blob): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
   };
 
   useEffect(() => {
@@ -182,7 +173,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                       transition={{ repeat: Infinity, duration: 1 }}
                       className="w-2 h-2 rounded-full bg-white" 
                     />
-                    AGENTIC FEED ACTIVE
+                    GEMINI 3 LIVE FEED
                   </Badge>
                   {isDurableRetry && (
                     <Badge variant="destructive" className="gap-2 animate-pulse">
@@ -205,12 +196,12 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                   </div>
                   <div className="h-12 w-px bg-white/10" />
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Orchestrator Status</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Agent Status</p>
                     <p className="text-sm font-medium flex items-center gap-2 text-foreground/90">
                       {isProcessing ? (
                         <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                       ) : (
-                        <Activity className="w-4 h-4 text-accent" />
+                        <Cpu className="w-4 h-4 text-accent" />
                       )}
                       {status}
                     </p>
@@ -252,7 +243,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                 <div className="p-2 bg-accent/20 rounded-lg">
                   <ShieldCheck className="w-5 h-5 text-accent" />
                 </div>
-                <h3 className="text-lg font-headline font-bold">LlamaIndex Brain</h3>
+                <h3 className="text-lg font-headline font-bold">LlamaIndex Core</h3>
               </div>
 
               <div className="space-y-6">
@@ -276,7 +267,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                    <span className="text-[9px] text-muted-foreground uppercase">Semantic Routing Active</span>
+                    <span className="text-[9px] text-muted-foreground uppercase">Gemini 3 Orchestration</span>
                   </div>
                 </motion.div>
               </div>

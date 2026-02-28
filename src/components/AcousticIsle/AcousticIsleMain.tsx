@@ -1,12 +1,12 @@
-
 "use client";
 
 import React, { useState } from 'react';
 import { JamSession } from './JamSession';
 import { RoyaltyLedger } from './RoyaltyLedger';
-import { Music, ShieldCheck, Globe, Info } from 'lucide-react';
+import { Music, ShieldCheck, Globe, Info, LayoutDashboard, Database, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FirebaseClientProvider } from '@/firebase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function AcousticIsleMain() {
   const [isJamming, setIsJamming] = useState(false);
@@ -15,7 +15,6 @@ export function AcousticIsleMain() {
 
   const handleRoyaltyUpdate = (amount: number, stemId: string) => {
     setTotalRoyalty((prev) => prev + amount);
-    
     setActiveStems((prev) => {
       const exists = prev.find(s => s.id === stemId);
       if (exists) return prev;
@@ -25,76 +24,101 @@ export function AcousticIsleMain() {
 
   return (
     <FirebaseClientProvider>
-      <div className="flex flex-col min-h-screen lg:flex-row bg-background overflow-hidden">
-        {/* Sidebar / Branding */}
-        <aside className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-white/5 p-8 flex flex-col glass-panel z-10">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="p-2 bg-primary rounded-xl shadow-lg shadow-primary/20">
-              <Music className="w-6 h-6 text-white" />
+      <div className="flex flex-col min-h-screen lg:flex-row bg-background text-foreground selection:bg-accent/30 selection:text-accent font-body">
+        {/* Sidebar / Navigation Hub */}
+        <motion.aside 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-white/5 p-8 flex flex-col glass-card z-20"
+        >
+          <div className="flex items-center gap-4 mb-12">
+            <div className="p-3 bg-primary rounded-2xl shadow-2xl shadow-primary/40 group cursor-pointer overflow-hidden relative">
+              <Music className="w-6 h-6 text-white relative z-10" />
+              <div className="absolute inset-0 bg-accent translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             </div>
-            <h1 className="text-2xl font-bold font-headline tracking-tight">AcousticIsle</h1>
+            <div>
+              <h1 className="text-xl font-bold font-headline tracking-tighter leading-none">AcousticIsle</h1>
+              <span className="text-[10px] font-bold text-accent uppercase tracking-widest">Durable Heritage v1.0</span>
+            </div>
           </div>
 
-          <nav className="flex-1 space-y-6">
+          <nav className="flex-1 space-y-8">
             <section>
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Vision</h2>
-              <p className="text-sm leading-relaxed text-foreground/80">
-                Directly targeting the massive bottleneck of music metadata provenance and rights orchestration.
-              </p>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Tech Core</h2>
-              <div className="flex items-center gap-3 text-sm text-foreground/70">
-                <ShieldCheck className="w-4 h-4 text-accent" />
-                <span>Durable Multi-Agent Team</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-foreground/70">
-                <Globe className="w-4 h-4 text-accent" />
-                <span>Fractional Rights Ledger</span>
+              <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <LayoutDashboard className="w-3 h-3" />
+                System Dashboard
+              </h2>
+              <div className="space-y-2">
+                <Button variant="ghost" className="w-full justify-start gap-3 bg-white/5 text-foreground border border-white/5">
+                  <Activity className="w-4 h-4 text-accent" />
+                  Live Session
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:bg-white/5">
+                  <Database className="w-4 h-4" />
+                  Heritage Catalog
+                </Button>
               </div>
             </section>
 
-            <section className="pt-6">
-               <RoyaltyLedger total={totalRoyalty} stems={activeStems} />
+            <section>
+              <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-4">Autonomous Ledger</h2>
+              <RoyaltyLedger total={totalRoyalty} stems={activeStems} />
             </section>
           </nav>
 
-          <footer className="mt-auto pt-10">
-            <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground">
-              <Info className="w-4 h-4" />
-              Developer Specs
-            </Button>
-          </footer>
-        </aside>
-
-        {/* Main Jam Area */}
-        <section className="flex-1 relative flex flex-col p-4 md:p-10 lg:p-20 items-center justify-center">
-          {!isJamming ? (
-            <div className="max-w-xl text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <div className="inline-block p-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold tracking-wider uppercase mb-2">
-                Multi-Agent Rights Orchestration
-              </div>
-              <h2 className="text-4xl md:text-6xl font-headline font-bold leading-tight">
-                Jam with <span className="text-accent">Durable</span> Heritage.
-              </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Experience the first AI-native sandbox that automatically orchestrates fractional royalties for indigenous communities.
+          <div className="mt-auto pt-8 border-t border-white/5">
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+              <p className="text-[10px] leading-relaxed text-muted-foreground italic">
+                AcousticIsle targets the metadata provenance bottleneck using multimodal Gemini 3 agents.
               </p>
-              <Button 
-                onClick={() => setIsJamming(true)}
-                size="lg" 
-                className="bg-primary hover:bg-primary/90 text-white px-10 h-14 text-lg rounded-full transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"
-              >
-                Start Session
-              </Button>
             </div>
-          ) : (
-            <JamSession onRoyaltyUpdate={handleRoyaltyUpdate} />
-          )}
+          </div>
+        </motion.aside>
 
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px] -z-10 animate-pulse-slow"></div>
-          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent/10 rounded-full blur-[120px] -z-10 animate-pulse-slow"></div>
+        {/* Main Orchestration Area */}
+        <section className="flex-1 relative flex flex-col p-4 md:p-10 lg:p-12 items-center justify-center overflow-hidden">
+          <AnimatePresence mode="wait">
+            {!isJamming ? (
+              <motion.div 
+                key="landing"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.6, ease: "circOut" }}
+                className="max-w-2xl text-center space-y-10 relative z-10"
+              >
+                <div className="inline-block p-1 px-4 rounded-full bg-accent/10 border border-accent/20 text-accent text-[10px] font-bold tracking-[0.3em] uppercase mb-4 animate-pulse">
+                  Enterprise Multi-Agent Orchestration
+                </div>
+                <h2 className="text-5xl md:text-7xl font-headline font-bold leading-[0.9] tracking-tighter">
+                  Jam with <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary animate-gradient">Durable</span> Musical Heritage.
+                </h2>
+                <p className="text-lg text-muted-foreground leading-relaxed max-w-lg mx-auto">
+                  The first AI-native sandbox that automatically orchestrates fractional royalties for indigenous communities using Gemini 3 & LlamaIndex.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Button 
+                    onClick={() => setIsJamming(true)}
+                    size="lg" 
+                    className="bg-primary hover:bg-primary/90 text-white px-12 h-16 text-lg rounded-full transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-primary/40 group"
+                  >
+                    Initialize Session
+                    <Activity className="w-5 h-5 ml-2 group-hover:animate-spin" />
+                  </Button>
+                  <Button variant="outline" size="lg" className="h-16 px-8 rounded-full border-white/10 hover:bg-white/5">
+                    View Ledger
+                  </Button>
+                </div>
+              </motion.div>
+            ) : (
+              <JamSession onRoyaltyUpdate={handleRoyaltyUpdate} />
+            )}
+          </AnimatePresence>
+
+          {/* Background Ambient Elements */}
+          <div className="absolute top-1/4 -left-20 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -z-10 animate-pulse" />
+          <div className="absolute bottom-1/4 -right-20 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] -z-10 animate-pulse" style={{ animationDelay: '2s' }} />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
         </section>
       </div>
     </FirebaseClientProvider>

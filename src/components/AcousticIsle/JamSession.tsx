@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, StopCircle, RefreshCw, Activity, Zap, ShieldCheck, Cpu } from 'lucide-react';
+import { Camera, StopCircle, RefreshCw, Activity, Zap, ShieldCheck, Cpu, Mic, Eye, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,9 +57,8 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         reader.readAsDataURL(blob);
       });
 
-      setStatus("Gemini 3 Multimodal Inference...");
+      setStatus("Gemini 3 Pro Multimodal Orchestration...");
       
-      // Simulate orchestration sequence
       const result = await generateDynamicAccompaniment({
         mediaDataUri: dataUri
       });
@@ -69,10 +68,9 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setBpm(result.bpm);
         setCurrentStem(result.stem_name || result.play_stem);
         setEnergy(result.energy_score * 10);
-        setStatus(`Orchestrated: ${result.stem_name || result.play_stem}`);
+        setStatus(`Heritage Orchestrated: ${result.stem_name || result.play_stem}`);
         setIsDurableRetry(false);
 
-        // Durable Ledger Update
         setCurrentStep('logging');
         if (firestore) {
           logRoyaltyTransaction(firestore, {
@@ -84,21 +82,21 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
 
         onRoyaltyUpdate(result.royalty_amount, result.play_stem);
         
-        // Return to sensing mode after brief confirmation
         setTimeout(() => {
-          if (isRecording) setCurrentStep('sensing');
-        }, 1000);
+          if (isRecording) {
+            setCurrentStep('sensing');
+            setStatus("Monitoring Biometric Feed...");
+          }
+        }, 1500);
       }
     } catch (error) {
       console.error("Telemetry failure:", error);
-      
-      // Durable Execution Pattern: Retry with backoff
       if (retryCount < 2) {
         setIsDurableRetry(true);
-        setStatus(`Durable Retry (Attempt ${retryCount + 1})...`);
+        setStatus(`Durable Execution: Self-Healing Attempt ${retryCount + 1}...`);
         setTimeout(() => processChunk(blob, retryCount + 1), 1000);
       } else {
-        setStatus("Network Congestion. Buffering locally...");
+        setStatus("Buffering Local Telemetry...");
         setCurrentStep('sensing');
       }
     } finally {
@@ -117,7 +115,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
       
       setIsRecording(true);
       setCurrentStep('sensing');
-      setStatus("Capturing multi-agent stream...");
+      setStatus("Establishing Secure Telemetry Tunnel...");
 
       const options = { mimeType: 'video/webm;codecs=vp8,opus' };
       const mediaRecorder = new MediaRecorder(stream, options);
@@ -133,7 +131,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
 
     } catch (err) {
       console.error("Hardware access denied:", err);
-      setStatus("Media hardware unavailable.");
+      setStatus("Media Hardware Access Required.");
     }
   };
 
@@ -143,11 +141,10 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-5xl space-y-6"
+      className="w-full max-w-6xl space-y-8"
     >
-      {/* Orchestration Reasoning Layer */}
       <OrchestrationGraph 
         isRecording={isRecording} 
         isProcessing={isProcessing} 
@@ -155,17 +152,18 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         step={currentStep} 
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div className="space-y-6 md:col-span-2">
-          <Card className="glass-panel overflow-hidden relative border-white/5 shadow-2xl">
-            <div className="aspect-video bg-black flex items-center justify-center relative">
+        <div className="lg:col-span-8 space-y-8">
+          <Card className="glass-card overflow-hidden relative border-white/5">
+            <div className="aspect-video bg-black flex items-center justify-center relative hud-border">
+              <div className="scanline" />
               <video 
                 ref={videoRef} 
                 autoPlay 
                 muted 
                 playsInline 
-                className={`w-full h-full object-cover transition-opacity duration-700 ${isRecording ? 'opacity-100' : 'opacity-0'}`}
+                className={`w-full h-full object-cover transition-all duration-1000 ${isRecording ? 'opacity-100' : 'opacity-0 scale-105 blur-md'}`}
               />
               
               <AnimatePresence>
@@ -174,134 +172,186 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-md z-10"
+                    className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-xl z-20"
                   >
-                    <div className="text-center space-y-4">
+                    <div className="text-center space-y-6">
                       <motion.div 
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+                        animate={{ 
+                          scale: [1, 1.1, 1],
+                          rotate: [0, 5, -5, 0]
+                        }}
+                        transition={{ repeat: Infinity, duration: 4 }}
+                        className="w-24 h-24 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto shadow-2xl shadow-primary/20"
                       >
-                         <Camera className="w-10 h-10 text-primary" />
+                         <Camera className="w-12 h-12 text-primary" />
                       </motion.div>
-                      <p className="text-sm font-medium text-muted-foreground font-headline uppercase tracking-widest">Initialize Biometric Sensors</p>
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-accent uppercase tracking-[0.4em]">Biometric Hub Offline</p>
+                        <p className="text-sm text-muted-foreground">Awaiting hardware initialization...</p>
+                      </div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
+              {/* HUD Overlays */}
               {isRecording && (
-                <div className="absolute top-4 left-4 z-20 flex gap-2">
-                  <Badge className="bg-red-500 text-white gap-2 border-none shadow-lg px-3 py-1">
-                    <motion.span 
-                      animate={{ opacity: [1, 0.4, 1] }}
-                      transition={{ repeat: Infinity, duration: 1 }}
-                      className="w-2 h-2 rounded-full bg-white" 
-                    />
-                    GEMINI 3 LIVE FEED
-                  </Badge>
-                  {isDurableRetry && (
-                    <Badge variant="destructive" className="gap-2 animate-pulse">
-                      <ShieldCheck className="w-3 h-3" />
-                      DURABLE RETRY
+                <>
+                  <div className="absolute top-6 left-6 z-30 flex flex-col gap-3">
+                    <Badge className="bg-red-500/80 backdrop-blur-md text-white gap-2 border-none shadow-xl px-4 py-1.5 font-bold tracking-widest text-[10px]">
+                      <motion.span 
+                        animate={{ opacity: [1, 0, 1] }}
+                        transition={{ repeat: Infinity, duration: 1 }}
+                        className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_white]" 
+                      />
+                      GEMINI 3 MULTIMODAL LIVE
                     </Badge>
-                  )}
-                </div>
+                    <div className="flex gap-2">
+                      <div className="p-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg flex items-center gap-2">
+                         <Eye className="w-3 h-3 text-accent" />
+                         <span className="text-[9px] font-bold text-white uppercase">Vision Agent Active</span>
+                      </div>
+                      <div className="p-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg flex items-center gap-2">
+                         <Mic className="w-3 h-3 text-primary" />
+                         <span className="text-[9px] font-bold text-white uppercase">Audio Agent Active</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-6 right-6 z-30 text-right">
+                    <p className="text-[8px] font-bold text-accent/50 uppercase tracking-widest mb-1">Latency Optimization</p>
+                    <p className="text-xs font-mono text-accent">DURABLE_LOOP_SECURED</p>
+                  </div>
+                </>
               )}
             </div>
             
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
+            <div className="p-8 space-y-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex items-center gap-8 w-full md:w-auto">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Live BPM</p>
-                    <p className="text-3xl font-headline font-bold text-accent tracking-tighter">
-                      {bpm ? `${Math.round(bpm)}` : '--'}
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Telemetry BPM</p>
+                    <p className="text-4xl font-headline font-bold text-accent tracking-tighter">
+                      {bpm ? `${Math.round(bpm)}` : '000'}
                     </p>
                   </div>
-                  <div className="h-12 w-px bg-white/10" />
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Agent Status</p>
-                    <p className="text-sm font-medium flex items-center gap-2 text-foreground/90">
+                  <div className="h-16 w-px bg-white/5" />
+                  <div className="space-y-2 flex-1">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Agentic Status</p>
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
                       {isProcessing ? (
                         <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                       ) : (
                         <Cpu className="w-4 h-4 text-accent" />
                       )}
-                      {status}
-                    </p>
+                      <span className="text-xs font-medium text-foreground/80 truncate">
+                        {status}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-4 w-full md:w-auto">
                   {!isRecording ? (
                     <Button 
                       onClick={startSession} 
-                      className="bg-primary hover:bg-primary/90 text-white gap-2 px-8 h-12 rounded-full shadow-xl transition-all"
+                      className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white gap-3 px-10 h-14 rounded-full shadow-2xl transition-all hover:scale-105 font-bold"
                     >
-                      <Zap className="w-4 h-4" />
-                      Start Session
+                      <Zap className="w-5 h-5" />
+                      Connect Sensors
                     </Button>
                   ) : (
                     <Button 
                       onClick={stopSession} 
                       variant="destructive" 
-                      className="gap-2 px-8 h-12 rounded-full shadow-xl transition-all"
+                      className="w-full md:w-auto gap-3 px-10 h-14 rounded-full shadow-2xl transition-all hover:scale-105 font-bold"
                     >
-                      <StopCircle className="w-4 h-4" />
-                      Stop
+                      <StopCircle className="w-5 h-5" />
+                      End Session
                     </Button>
                   )}
                 </div>
               </div>
 
-              <div className="h-20 w-full bg-black/40 rounded-xl border border-white/5 overflow-hidden">
+              <div className="h-24 w-full bg-black/60 rounded-2xl border border-white/5 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
                 <Visualizer active={isRecording} bpm={bpm || 0} />
               </div>
             </div>
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card className="glass-panel p-6 border-white/5 h-full flex flex-col justify-between shadow-2xl overflow-hidden relative">
-            <div className="space-y-8 relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-accent/20 rounded-lg">
-                  <ShieldCheck className="w-5 h-5 text-accent" />
+        <div className="lg:col-span-4 space-y-8">
+          <Card className="glass-card p-8 border-white/5 h-full flex flex-col shadow-2xl overflow-hidden relative group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Database className="w-32 h-32 text-accent -rotate-12" />
+            </div>
+            
+            <div className="space-y-10 relative z-10 flex-1">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-accent/20 rounded-xl">
+                    <ShieldCheck className="w-6 h-6 text-accent" />
+                  </div>
+                  <h3 className="text-xl font-headline font-bold">Heritage Engine</h3>
                 </div>
-                <h3 className="text-lg font-headline font-bold">LlamaIndex Core</h3>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest ml-12">LlamaIndex Semantic Core</p>
               </div>
 
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                    <span>Kinetic Score</span>
-                    <span className="text-accent">{Math.round(energy)}%</span>
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Kinetic Energy</p>
+                      <p className="text-2xl font-headline font-bold text-accent">{Math.round(energy)}%</p>
+                    </div>
                   </div>
-                  <Progress value={energy} className="h-2 bg-white/5" />
+                  <div className="relative h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${energy}%` }}
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_rgba(122,210,240,0.5)]"
+                    />
+                  </div>
                 </div>
 
-                <motion.div 
-                  key={currentStem}
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  className="p-5 rounded-2xl bg-primary/10 border border-primary/20 space-y-2"
-                >
-                  <p className="text-[10px] font-bold text-primary uppercase">Active Heritage Stem</p>
-                  <p className="text-sm font-medium italic text-foreground leading-relaxed">
-                    {currentStem || "Awaiting sensor data..."}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                    <span className="text-[9px] text-muted-foreground uppercase">Gemini 3 Orchestration</span>
-                  </div>
-                </motion.div>
+                <AnimatePresence mode="wait">
+                  <motion.div 
+                    key={currentStem}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -20, opacity: 0 }}
+                    className="p-6 rounded-2xl bg-primary/10 border border-primary/20 space-y-4 relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-full" />
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Active Cultural Stem</p>
+                      <p className="text-lg font-headline font-bold text-foreground leading-tight">
+                        {currentStem || "Awaiting Biometrics..."}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                         <div className="w-1 h-3 bg-accent/40 rounded-full animate-pulse" />
+                         <div className="w-1 h-3 bg-accent/40 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                         <div className="w-1 h-3 bg-accent/40 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+                      </div>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Autonomous Sync</span>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
 
-            <div className="pt-8 text-center">
-              <p className="text-[9px] text-muted-foreground uppercase tracking-[0.2em]">
-                Durable Micro-Payments Enabled
-              </p>
+            <div className="pt-8 mt-auto border-t border-white/5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                   <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Durable Status</p>
+                   <p className="text-[10px] font-bold text-accent">READ_WRITE_SECURED</p>
+                </div>
+                <div className="p-2 bg-accent/10 rounded-lg">
+                   <ShieldCheck className="w-4 h-4 text-accent" />
+                </div>
+              </div>
             </div>
           </Card>
         </div>

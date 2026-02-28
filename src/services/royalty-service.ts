@@ -1,12 +1,12 @@
 
 'use client';
 
-import { collection, doc, increment, Firestore } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, increment, setDoc, Firestore } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 /**
  * Logs a royalty event to Firestore and updates the community's total balance.
- * This ensures the ledger is "durable" and verifiable.
+ * Uses setDoc with merge to handle first-time community document creation.
  */
 export function logRoyaltyTransaction(
   db: Firestore,
@@ -25,8 +25,12 @@ export function logRoyaltyTransaction(
     timestamp: new Date().toISOString(),
   });
 
-  // 2. Increment the global community vault balance
-  updateDocumentNonBlocking(communityRef, {
-    currentRoyaltyBalance: increment(data.amount)
+  // 2. Upsert the community vault balance (creates doc if it doesn't exist)
+  setDoc(communityRef, {
+    communityId: data.communityId,
+    currentRoyaltyBalance: increment(data.amount),
+    lastUpdated: new Date().toISOString(),
+  }, { merge: true }).catch(error => {
+    console.error('[Royalty] Failed to update community balance:', error);
   });
 }

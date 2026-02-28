@@ -143,9 +143,9 @@ export const useAuth = (): Auth => {
 };
 
 /** Hook to access Firestore instance. */
-export const useFirestore = (): Firestore => {
+export const useFirestore = (): { firestore: Firestore } => {
   const { firestore } = useFirebase();
-  return firestore;
+  return { firestore };
 };
 
 /** Hook to access Firebase App instance. */

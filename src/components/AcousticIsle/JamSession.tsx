@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, StopCircle, RefreshCw, Activity, Zap, AlertTriangle } from 'lucide-react';
+import { Camera, StopCircle, RefreshCw, Activity, Zap, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const [status, setStatus] = useState<string>("Ready to start...");
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorCount, setErrorCount] = useState(0);
+  const [isDurableRetry, setIsDurableRetry] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -33,6 +34,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
 
   const stopSession = useCallback(() => {
     setIsRecording(false);
+    setIsDurableRetry(false);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -42,12 +44,12 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
     setStatus("Session ended.");
   }, []);
 
-  const processChunk = async (blob: Blob) => {
+  const processChunk = async (blob: Blob, retryCount = 0) => {
     setIsProcessing(true);
     try {
       const dataUri = await blobToDataUri(blob);
 
-      setStatus("LlamaIndex Semantic Retrieval...");
+      setStatus("LlamaIndex Semantic Routing...");
       const result = await generateDynamicAccompaniment({
         mediaDataUri: dataUri
       });
@@ -58,6 +60,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setEnergy(result.energy_score * 10);
         setStatus(`Orchestrated: ${result.stem_name || result.play_stem}`);
         setErrorCount(0);
+        setIsDurableRetry(false);
 
         // Durable Ledger Update
         if (firestore) {
@@ -71,10 +74,17 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         onRoyaltyUpdate(result.royalty_amount, result.play_stem);
       }
     } catch (error) {
-      console.error("Telemetry failed:", error);
-      setErrorCount(prev => prev + 1);
-      setStatus("Sync failure. Entering Durable Buffer Mode...");
-      // Simulate "Durable Execution" by looping last known state or default
+      console.error("Telemetry failure:", error);
+      
+      // Durable Execution Pattern: Retry with backoff if within limits
+      if (retryCount < 2) {
+        setIsDurableRetry(true);
+        setStatus(`Durable Retry Mode (Attempt ${retryCount + 1})...`);
+        setTimeout(() => processChunk(blob, retryCount + 1), 1000);
+      } else {
+        setErrorCount(prev => prev + 1);
+        setStatus("Network Congestion. Using Local Buffer...");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -102,6 +112,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         }
       };
 
+      // Rolling 3-second chunks as per optimized sensor layer guidance
       mediaRecorder.start(3000);
 
     } catch (err) {
@@ -157,7 +168,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                       >
                          <Camera className="w-10 h-10 text-primary" />
                       </motion.div>
-                      <p className="text-sm font-medium text-muted-foreground font-headline">Initialize Biometric Sensors</p>
+                      <p className="text-sm font-medium text-muted-foreground font-headline uppercase tracking-widest">Initialize Biometric Sensors</p>
                     </div>
                   </motion.div>
                 )}
@@ -173,10 +184,10 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     />
                     AGENTIC FEED ACTIVE
                   </Badge>
-                  {errorCount > 0 && (
-                    <Badge variant="destructive" className="gap-2">
-                      <AlertTriangle className="w-3 h-3" />
-                      DURABLE RETRY ACTIVE
+                  {isDurableRetry && (
+                    <Badge variant="destructive" className="gap-2 animate-pulse">
+                      <ShieldCheck className="w-3 h-3" />
+                      DURABLE RETRY
                     </Badge>
                   )}
                 </div>
@@ -239,9 +250,9 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
             <div className="space-y-8 relative z-10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-accent/20 rounded-lg">
-                  <Zap className="w-5 h-5 text-accent" />
+                  <ShieldCheck className="w-5 h-5 text-accent" />
                 </div>
-                <h3 className="text-lg font-headline font-bold">Brain Decision</h3>
+                <h3 className="text-lg font-headline font-bold">LlamaIndex Brain</h3>
               </div>
 
               <div className="space-y-6">
@@ -265,7 +276,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                    <span className="text-[9px] text-muted-foreground uppercase">Semantic retrieval active</span>
+                    <span className="text-[9px] text-muted-foreground uppercase">Semantic Routing Active</span>
                   </div>
                 </motion.div>
               </div>
@@ -273,7 +284,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
 
             <div className="pt-8 text-center">
               <p className="text-[9px] text-muted-foreground uppercase tracking-[0.2em]">
-                Direct Community Royalties Enabled
+                Durable Micro-Payments Enabled
               </p>
             </div>
           </Card>

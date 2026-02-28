@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { JamSession } from './JamSession';
 import { RoyaltyLedger } from './RoyaltyLedger';
-import { Music, ShieldCheck, Globe, LayoutDashboard, Database, Activity, Zap, Users, Sparkles, ChevronRight, HelpCircle } from 'lucide-react';
+import { Music, ShieldCheck, Globe, LayoutDashboard, Database, Activity, Zap, Users, Sparkles, ChevronRight, HelpCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FirebaseClientProvider } from '@/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,7 +39,7 @@ export function AcousticIsleMain() {
             </div>
             <div>
               <h1 className="text-xl font-bold font-headline tracking-tighter leading-none">AcousticIsle</h1>
-              <span className="text-[10px] font-bold text-accent uppercase tracking-widest">Hackathon Prototype</span>
+              <span className="text-[10px] font-bold text-accent uppercase tracking-widest">NYC Hackathon AI Prototype</span>
             </div>
           </div>
 
@@ -47,7 +47,7 @@ export function AcousticIsleMain() {
             <section>
               <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                 <LayoutDashboard className="w-3 h-3" />
-                Interface
+                Mission Console
               </h2>
               <div className="space-y-2">
                 <Button 
@@ -60,7 +60,7 @@ export function AcousticIsleMain() {
                 </Button>
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start gap-3 text-muted-foreground hover:bg-white/5"
+                  className={`w-full justify-start gap-3 text-muted-foreground hover:bg-white/5 ${!isJamming ? 'bg-white/10 text-foreground' : ''}`}
                   onClick={() => setIsJamming(false)}
                 >
                   <Globe className="w-4 h-4" />
@@ -70,7 +70,7 @@ export function AcousticIsleMain() {
             </section>
 
             <section>
-              <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">Durable Ledger</h2>
+              <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">Real-time Ledger</h2>
               <RoyaltyLedger total={totalRoyalty} stems={activeStems} />
             </section>
           </nav>
@@ -78,7 +78,7 @@ export function AcousticIsleMain() {
           <div className="mt-auto pt-8 border-t border-white/5">
             <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
               <p className="text-[10px] leading-relaxed text-muted-foreground italic">
-                AcousticIsle uses Gemini 3 & LlamaIndex to automate musical heritage provenance.
+                Powered by Gemini 3 Flash & LlamaIndex for autonomous heritage provenance.
               </p>
             </div>
           </div>
@@ -96,31 +96,38 @@ export function AcousticIsleMain() {
                 className="max-w-4xl text-center space-y-10 relative z-10 py-12"
               >
                 <div className="inline-block p-1 px-4 rounded-full bg-accent/10 border border-accent/20 text-accent text-[10px] font-bold tracking-[0.3em] uppercase mb-4">
-                  Multi-Agent Orchestration
+                  Multi-Agent Orchestration Middleware
                 </div>
                 <h2 className="text-5xl md:text-8xl font-headline font-bold leading-[0.9] tracking-tighter">
                   Bridge the Gap with <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary animate-gradient">Autonomous Heritage</span>.
                 </h2>
                 
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
-                  Capture your biometric telemetry and delegate musical decisions to a swarm of AI experts.
+                  Connect your live kinetic telemetry to protected indigenous music archives. 
+                  Every movement writes a royalty. Every sound preserves a culture.
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-3xl mx-auto py-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-4xl mx-auto py-6">
                   <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 space-y-4 hover:bg-white/[0.07] transition-colors group">
                     <Users className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
                     <h3 className="text-sm font-bold uppercase tracking-widest text-accent">1. Sensing</h3>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">Move or make sounds. Our sensors capture every subtle shift in your presence.</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      The <span className="text-foreground font-bold">Telemetry Specialist</span> captures your kinetic energy. Move your head, hands, or eyes to set the mood.
+                    </p>
                   </div>
                   <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 space-y-4 hover:bg-white/[0.07] transition-colors group">
                     <Sparkles className="w-8 h-8 text-accent group-hover:scale-110 transition-transform" />
                     <h3 className="text-sm font-bold uppercase tracking-widest text-accent">2. Swarm</h3>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">Gemini 3 agents analyze your energy to retrieve the perfect cultural loop.</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      The <span className="text-foreground font-bold">Ethnomusicologist DJ</span> uses Gemini 3 & LlamaIndex to retrieve the perfect matching stem.
+                    </p>
                   </div>
                   <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 space-y-4 hover:bg-white/[0.07] transition-colors group">
                     <ShieldCheck className="w-8 h-8 text-emerald-400 group-hover:scale-110 transition-transform" />
                     <h3 className="text-sm font-bold uppercase tracking-widest text-accent">3. Ledger</h3>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">Every jam session writes an immutable micro-payment to the community vault.</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      The <span className="text-foreground font-bold">Durable Ledger</span> writes an immutable micro-payment to the community vault.
+                    </p>
                   </div>
                 </div>
 
@@ -130,14 +137,14 @@ export function AcousticIsleMain() {
                     size="lg" 
                     className="bg-primary hover:bg-primary/90 text-white px-16 h-20 text-xl rounded-full transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-primary/40 group"
                   >
-                    Enter the Sandbox
+                    Enter Live Sandbox
                     <ChevronRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
 
                 <div className="flex items-center justify-center gap-4 text-muted-foreground/50 text-[10px] uppercase font-bold tracking-widest">
                   <HelpCircle className="w-4 h-4" />
-                  <span>Works best with camera and mic enabled</span>
+                  <span>Works best with camera enabled. Move for energy, sound for tempo.</span>
                 </div>
               </motion.div>
             ) : (

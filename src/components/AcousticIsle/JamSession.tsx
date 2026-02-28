@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StopCircle, Activity, Zap, Cpu, Mic, Eye, Database, Move, AlertCircle, Loader2, Gauge, Info, Terminal, Radio } from 'lucide-react';
+import { StopCircle, Activity, Zap, Cpu, Mic, Eye, Database, Move, AlertCircle, Loader2, Gauge, Info, Terminal, Radio, Music, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +36,34 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
 
   const addLog = (msg: string) => {
-    setLogs(prev => [...prev.slice(-4), `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    setLogs(prev => [...prev.slice(-6), `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  };
+
+  // Simple Audio Synthesis to simulate "The Music"
+  const triggerAudioResponse = (energyLevel: number, detectedBpm: number) => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    // Map energy to frequency (higher energy = higher pitch)
+    osc.frequency.setValueAtTime(200 + (energyLevel * 50), ctx.currentTime);
+    osc.type = 'sine';
+
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 1);
   };
 
   const stopSession = useCallback(() => {
@@ -59,7 +84,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
     if (!isRecording) return;
     setIsProcessing(true);
     setCurrentStep('thinking');
-    addLog("Orchestrator: Analyzing 5s multimodal packet...");
+    addLog("TELEMETRY: Scanning multimodal packet (5s window)...");
     
     try {
       const reader = new FileReader();
@@ -78,7 +103,10 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setCurrentStem(result.stem_name || result.play_stem);
         setEnergy(result.energy_score * 10);
         setStatus(`Agent Decision: Playing ${result.stem_name}`);
-        addLog(`LlamaIndex: Heritage retrieved (${result.stem_name})`);
+        addLog(`LLAMAINDEX: Cultural match found: ${result.stem_name}`);
+        
+        // Trigger the synthesis engine
+        triggerAudioResponse(result.energy_score, result.bpm);
 
         setCurrentStep('logging');
         if (firestore) {
@@ -90,19 +118,19 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         }
 
         onRoyaltyUpdate(result.royalty_amount, result.play_stem);
-        addLog(`Ledger: Micro-payment of $${result.royalty_amount.toFixed(4)} secured.`);
+        addLog(`LEDGER: Micro-royalty of $${result.royalty_amount.toFixed(4)} secured in Vault.`);
         
         setTimeout(() => {
           if (isRecording) {
             setCurrentStep('sensing');
-            setStatus("Scanning for biometric shifts...");
+            setStatus("Scanning for kinetic shifts...");
           }
         }, 1500);
       }
     } catch (error) {
       console.error("Inference failure:", error);
-      setStatus("Sync lost. Durable Execution enabled.");
-      addLog("SYNC ALERT: Retrying multimodal link...");
+      setStatus("Sync lost. Durable Retry Active.");
+      addLog("SYNC ALERT: Re-establishing multimodal link...");
       setCurrentStep('sensing');
     } finally {
       setIsProcessing(false);
@@ -112,7 +140,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const startSession = async () => {
     setIsCalibrating(true);
     setStatus("Establishing secure hardware link...");
-    addLog("Calibrating Vision & Audio sensors...");
+    addLog("CALIBRATING: Vision & Audio sensors...");
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -130,7 +158,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
         setIsRecording(true);
         setCurrentStep('sensing');
         setStatus("Swarm Online: Move or Sound to Lead.");
-        addLog("Agents Online. Telemetry loop started.");
+        addLog("AGENTS ONLINE: Telemetry loop engaged.");
 
         const options = { mimeType: 'video/webm;codecs=vp8,opus' };
         const mediaRecorder = new MediaRecorder(stream, options);
@@ -142,7 +170,6 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
           }
         };
 
-        // 5-second window for deeper reasoning
         mediaRecorder.start(5000);
       }, 2000);
 
@@ -188,8 +215,10 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
               {isRecording && (
                 <div className="absolute inset-0 z-10 pointer-events-none">
                   <div className="absolute top-0 left-0 w-full h-full border-[20px] border-accent/5" />
+                  
+                  {/* Kinetic Feedback Bars */}
                   <div className="absolute top-1/2 left-4 -translate-y-1/2 flex flex-col gap-2">
-                    <div className="w-1 h-20 bg-accent/20 rounded-full overflow-hidden">
+                    <div className="w-1 h-32 bg-accent/20 rounded-full overflow-hidden">
                        <motion.div 
                         animate={{ height: [`${energy}%`, `${energy * 0.8}%`, `${energy * 1.1}%`] }}
                         className="w-full bg-accent" 
@@ -197,12 +226,19 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     </div>
                     <span className="text-[8px] font-bold text-accent uppercase vertical-text">KINETIC</span>
                   </div>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
-                  <div className="absolute top-4 left-4 flex gap-4">
-                     <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1 rounded border border-white/10">
-                        <Radio className="w-3 h-3 text-red-500 animate-pulse" />
-                        <span className="text-[8px] font-mono">MISSION_LIVE</span>
-                     </div>
+
+                  {/* Multi-Agent HUD Overlay */}
+                  <motion.div 
+                    animate={{ opacity: [0.1, 0.3, 0.1] }}
+                    transition={{ repeat: Infinity, duration: 4 }}
+                    className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" 
+                  />
+                  
+                  <div className="absolute bottom-6 right-6 flex flex-col gap-2 text-right">
+                    <div className="flex items-center gap-2 justify-end">
+                       <span className="text-[10px] font-mono text-accent">SWARM_SYNC_ACTIVE</span>
+                       <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    </div>
                   </div>
                 </div>
               )}
@@ -228,7 +264,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                       </motion.div>
                       <div className="space-y-4">
                         <h2 className="text-3xl font-bold font-headline tracking-tight">Mission Control</h2>
-                        <p className="text-xs text-muted-foreground uppercase tracking-[0.2em]">Move your body or make sounds to trigger the Swarm.</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-[0.2em]">Move your head, hands, or make sounds to trigger the Swarm.</p>
                         
                         {hasPermissions === false && (
                           <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-left">
@@ -249,7 +285,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 backdrop-blur-2xl z-30"
                   >
                     <Loader2 className="w-12 h-12 text-accent animate-spin mb-6" />
-                    <p className="text-sm font-bold text-accent uppercase tracking-[0.4em] animate-pulse">Sensors Warming Up...</p>
+                    <p className="text-sm font-bold text-accent uppercase tracking-[0.4em] animate-pulse">Sensors Calibrating...</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -266,7 +302,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                   </div>
                   <div className="h-16 w-px bg-white/10" />
                   <div className="space-y-3 flex-1">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em]">Active Command</p>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em]">Active Agent Command</p>
                     <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-4 min-w-[300px]">
                       {isProcessing ? (
                         <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -286,7 +322,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                       disabled={isCalibrating}
                       className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white gap-4 px-10 h-16 rounded-full shadow-2xl transition-all hover:scale-105 font-black text-sm uppercase tracking-widest"
                     >
-                      {isCalibrating ? "Initializing..." : "Initialize Swarm"}
+                      {isCalibrating ? "Calibrating..." : "Initialize Swarm"}
                     </Button>
                   ) : (
                     <Button 
@@ -319,22 +355,25 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
               </div>
 
               <div className="space-y-6">
-                <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-[10px] space-y-2 h-48 overflow-hidden">
-                  <div className="flex items-center gap-2 text-primary border-b border-white/5 pb-2 mb-2">
-                    <Terminal className="w-3 h-3" />
-                    <span className="font-bold">LIVE TELEMETRY FEED</span>
+                <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-[10px] space-y-2 h-64 overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Terminal className="w-3 h-3" />
+                      <span className="font-bold">LIVE TELEMETRY FEED</span>
+                    </div>
+                    <Radio className="w-3 h-3 text-red-500 animate-pulse" />
                   </div>
                   {logs.map((log, i) => (
                     <div key={i} className="text-muted-foreground/80 animate-in slide-in-from-left-2">
                       {log}
                     </div>
                   ))}
-                  {isProcessing && <div className="text-accent animate-pulse">&gt;&gt; INFERENCE IN PROGRESS...</div>}
+                  {isProcessing && <div className="text-accent animate-pulse">{'>'}{'>'} INFERENCE_SWARM_ORCHESTRATION...</div>}
                 </div>
 
                 <div className="space-y-4 pt-4">
                   <div className="flex justify-between items-end">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Kinetic Intensity</p>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Kinetic Score</p>
                     <p className="text-2xl font-headline font-bold text-accent">{Math.round(energy)}%</p>
                   </div>
                   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
@@ -351,12 +390,21 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
                     key={currentStem}
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3"
+                    className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 relative overflow-hidden"
                   >
-                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Active Stem</p>
+                    <div className="absolute top-0 right-0 p-2 opacity-20">
+                      <Music className="w-12 h-12 text-accent" />
+                    </div>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Active Heritage Stem</p>
                     <p className="text-lg font-headline font-bold text-foreground leading-tight">
-                      {currentStem || "Awaiting Telemetry..."}
+                      {currentStem || "Awaiting Biometrics..."}
                     </p>
+                    {currentStem && (
+                      <div className="flex items-center gap-2 mt-2">
+                         <Volume2 className="w-3 h-3 text-accent animate-bounce" />
+                         <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Synthesis Engine Active</span>
+                      </div>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -365,7 +413,7 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
             <div className="pt-8 mt-auto border-t border-white/5">
                <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
                   <Info className="w-4 h-4 text-accent" />
-                  Guide: Move for energy, Sound for tempo.
+                  Instruction: Tap for BPM, Move for Energy.
                </div>
             </div>
           </Card>

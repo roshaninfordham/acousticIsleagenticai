@@ -21,6 +21,7 @@ export interface FrameAnalysisResult {
     royalty_amount: number;
     analysis_summary: string;
     community_id: string;
+    youtube_query: string;
 }
 
 export interface RoyaltyInput {
@@ -52,6 +53,7 @@ export async function analyzeAndRetrieveStemActivity(
         royalty_amount: result.royalty_amount,
         analysis_summary: result.analysis_summary,
         community_id: result.community_id,
+        youtube_query: result.youtube_query,
     };
 }
 

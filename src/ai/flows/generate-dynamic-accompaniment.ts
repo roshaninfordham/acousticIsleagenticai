@@ -25,6 +25,7 @@ const GenerateDynamicAccompanimentOutputSchema = z.object({
   royalty_amount: z.number().describe('The micro-royalty amount in USD (typically 0.0001 to 0.005 per interaction).'),
   analysis_summary: z.string().describe('A brief technical summary of the AI orchestration decision.'),
   community_id: z.string().describe('The ID of the indigenous community owning this heritage.'),
+  youtube_query: z.string().describe('A highly specific, culturally relevant YouTube search query to find real-world indigenous music matching the observed vibe (e.g. "Nicobarese Bamboo Strike traditional percussion" or "Native American flute meditation").'),
 });
 export type GenerateDynamicAccompanimentOutput = z.infer<typeof GenerateDynamicAccompanimentOutputSchema>;
 
@@ -91,8 +92,11 @@ For example: "energetic dancing, high movement, fast rhythm" or "calm and still,
 STEP 3 - CALCULATE ROYALTY:
 Set royalty_amount based on energy: energy_score * 0.0005
 
-STEP 4 - RETURN RESULT:
-Use the stem returned by the tool to populate play_stem (the stem id), stem_name, and community_id.
+STEP 4 - Cultural Pairing & YouTube Query:
+Generate a 'youtube_query' that translates this vibe into a specific indigenous music search term. (e.g. "Maori Haka traditional chant" or "Andean panpipe fast rhythm"). This grounds the visual telemetry in real-world ethnomusicology.
+
+STEP 5 - RETURN RESULT:
+Use the stem returned by the tool to populate play_stem (the stem id), stem_name, and community_id. Include your youtube_query.
 
 Input Frame: {{media url=mediaDataUri}}`,
 });
@@ -128,5 +132,6 @@ function createFallbackOutput(): GenerateDynamicAccompanimentOutput {
     royalty_amount: 0.0025,
     analysis_summary: 'Fallback: Using default stem due to inference timeout.',
     community_id: 'community_nicobar_01',
+    youtube_query: 'indigenous meditation chant traditional',
   };
 }

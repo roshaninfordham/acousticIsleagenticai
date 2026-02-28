@@ -107,3 +107,57 @@ export async function getYouTubeHeritageForEnergy(energyScore: number): Promise<
     // Return a random result for variety
     return results[Math.floor(Math.random() * results.length)];
 }
+
+/**
+ * Perform a raw semantic search on YouTube using a specific query.
+ * Results are cached by the exact query string.
+ */
+export async function searchYouTubeHeritageByQuery(query: string, maxResults: number = 3): Promise<YouTubeHeritageStem | null> {
+    const cacheKey = `raw-${query}-${maxResults}`;
+    if (searchCache.has(cacheKey)) {
+        const cached = searchCache.get(cacheKey)!;
+        return cached.length > 0 ? cached[0] : null;
+    }
+
+    if (!YOUTUBE_API_KEY) {
+        console.warn('[YouTube] No YOUTUBE_API_KEY set, skipping YouTube raw search');
+        return null;
+    }
+
+    try {
+        const params = new URLSearchParams({
+            part: 'snippet',
+            q: query,
+            type: 'video',
+            maxResults: String(maxResults),
+            videoCategoryId: '10', // Music category
+            key: YOUTUBE_API_KEY,
+            videoEmbeddable: 'true',
+            videoSyndicated: 'true',
+        });
+
+        const response = await fetch(`${YOUTUBE_SEARCH_URL}?${params}`);
+        if (!response.ok) {
+            console.error('[YouTube] API Error:', response.status, await response.text());
+            return null;
+        }
+
+        const data = await response.json();
+        const results: YouTubeHeritageStem[] = (data.items || []).map((item: any) => ({
+            videoId: item.id.videoId,
+            title: item.snippet.title,
+            channelTitle: item.snippet.channelTitle,
+            thumbnailUrl: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
+            description: item.snippet.description,
+            embedUrl: `https://www.youtube.com/embed/${item.id.videoId}?autoplay=1&controls=0`,
+        }));
+
+        searchCache.set(cacheKey, results);
+        console.log(`[YouTube] Found ${results.length} results for exact dynamic query: "${query}"`);
+
+        return results.length > 0 ? results[0] : null;
+    } catch (error) {
+        console.error('[YouTube] Exact query search failed:', error);
+        return null;
+    }
+}

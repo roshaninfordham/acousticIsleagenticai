@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDynamicAccompaniment } from '@/ai/flows/generate-dynamic-accompaniment';
 import { addRoyaltyEvent } from '@/store/local-ledger';
-import { getYouTubeHeritageForEnergy } from '@/services/youtube-heritage-service';
+import { searchYouTubeHeritageByQuery } from '@/services/youtube-heritage-service';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     return Promise.race([
@@ -45,7 +45,8 @@ async function tryTemporalExecution(frameDataUri: string, sessionId: string): Pr
 
 async function enrichWithYouTube(result: any): Promise<any> {
     try {
-        const ytVideo = await getYouTubeHeritageForEnergy(result.energy_score || 5);
+        const query = result.youtube_query || 'indigenous traditional music';
+        const ytVideo = await searchYouTubeHeritageByQuery(query);
         if (ytVideo) {
             return {
                 ...result,

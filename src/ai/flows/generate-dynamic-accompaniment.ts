@@ -1,39 +1,31 @@
+
 'use server';
 /**
- * @fileOverview A Genkit flow for the AcousticIsle application that analyzes multimodal
- * user input (audio and video) and dynamically suggests culturally accurate musical
- * accompaniments from the Andaman Islands heritage.
+ * @fileOverview The "AcousticIsle Brain" - A multimodal Genkit flow that orchestrates 
+ * musical decisions based on physical and rhythmic telemetry.
  *
- * - generateDynamicAccompaniment - A function that handles the dynamic accompaniment generation process.
- * - GenerateDynamicAccompanimentInput - The input type for the generateDynamicAccompaniment function.
- * - GenerateDynamicAccompanimentOutput - The return type for the generateDynamicAccompaniment function.
+ * - generateDynamicAccompaniment - Primary orchestrator function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const GenerateDynamicAccompanimentInputSchema = z.object({
-  audioDataUri: z
+  mediaDataUri: z
     .string()
     .describe(
-      "A 3-second audio snippet, as a data URI that must include a MIME type (e.g., audio/webm) and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  videoDataUri: z
-    .string()
-    .describe(
-      "A 3-second video snippet, as a data URI that must include a MIME type (e.g., video/webm) and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A 3-second multimodal snippet (webm/mp4) as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type GenerateDynamicAccompanimentInput = z.infer<typeof GenerateDynamicAccompanimentInputSchema>;
 
 const GenerateDynamicAccompanimentOutputSchema = z.object({
-  play_stem: z
-    .string()
-    .describe(
-      'The file name or identifier of the culturally accurate musical stem to play next (e.g., "high_energy_bamboo.mp3").'
-    ),
-  bpm: z.number().describe("The detected BPM (Beats Per Minute) of the user's input."),
-  royalty_split: z.string().describe('The micro-royalty amount for the community for using this stem (e.g., "$0.02").'),
+  play_stem: z.string().describe('The identified musical stem (e.g., "high_energy_percussion").'),
+  bpm: z.number().describe('The detected BPM of the performance.'),
+  energy_score: z.number().min(1).max(10).describe('The kinetic energy score from 1-10.'),
+  royalty_amount: z.number().describe('The micro-royalty amount in USD (e.g., 0.05).'),
+  analysis_summary: z.string().describe('A brief technical summary of the AI orchestration decision.'),
+  community_id: z.string().describe('The ID of the indigenous community owning this heritage.'),
 });
 export type GenerateDynamicAccompanimentOutput = z.infer<typeof GenerateDynamicAccompanimentOutputSchema>;
 
@@ -47,22 +39,22 @@ const dynamicAccompanimentPrompt = ai.definePrompt({
   name: 'dynamicAccompanimentPrompt',
   input: { schema: GenerateDynamicAccompanimentInputSchema },
   output: { schema: GenerateDynamicAccompanimentOutputSchema },
-  prompt: `You are an "Ethnomusicologist DJ" AI agent specializing in the musical heritage of the Andaman Islands.
-Your task is to analyze multimodal input from a user's live performance (audio and video) and suggest a dynamic, culturally accurate musical accompaniment.
+  model: 'googleai/gemini-2.5-flash',
+  prompt: `You are the "Ethnomusicologist DJ" Lead Orchestrator for AcousticIsle. 
+Your goal is to cross-reference video and audio telemetry to protect and promote indigenous musical heritage.
 
-Analyze the user's provided audio and video snippets to determine:
-1.  **BPM**: Estimate the Beats Per Minute from the user's audio input.
-2.  **Kinetic Energy**: Assess the user's physical energy level from the video (e.g., swaying slowly, dancing energetically).
+Analyze the provided 3-second multimodal stream:
+1. **Telemetry Analyst Layer**: Observe the kinetic energy. Is the user dancing, swaying, or stationary? Assign an energy score (1-10).
+2. **Rhythmic Analyst Layer**: Listen for tapping, humming, or vocalizing. Calculate the approximate BPM.
+3. **Heritage Selection**: Based on the data, select a culturally accurate stem. 
+   - Low energy/BPM: Ambient vocal chants or flute melodies.
+   - High energy/BPM: Rhythmic bamboo percussion loops or group chants.
 
-Based on this analysis, select an appropriate musical stem from the Andaman Islands heritage. The selection should dynamically transition to match the user's performance. For example, if the user starts tapping faster and moving more energetically, suggest a high-tempo, rhythmic percussion loop. If the user is slower and more ambient, suggest a vocal chant.
+Calculate a micro-royalty (royalty_amount) between $0.01 and $0.10 based on the complexity and duration of the usage.
 
-Provide your output in a strict JSON format with the following fields:
--   "play_stem": A string representing the file name or identifier of the musical stem to play. This should be culturally accurate and reflect the detected energy and BPM.
--   "bpm": A number representing the estimated BPM.
--   "royalty_split": A string representing a simulated micro-royalty amount for the community.
+Return your decision in strict JSON format.
 
-Audio input: {{media url=audioDataUri}}
-Video input: {{media url=videoDataUri}}`,
+Input Stream: {{media url=mediaDataUri}}`,
 });
 
 const generateDynamicAccompanimentFlow = ai.defineFlow(
@@ -74,7 +66,7 @@ const generateDynamicAccompanimentFlow = ai.defineFlow(
   async (input) => {
     const { output } = await dynamicAccompanimentPrompt(input);
     if (!output) {
-      throw new Error('Failed to generate dynamic accompaniment.');
+      throw new Error('Failed to orchestrate musical decision.');
     }
     return output;
   }

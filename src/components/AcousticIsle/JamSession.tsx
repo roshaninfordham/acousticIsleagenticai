@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Visualizer } from './Visualizer';
 import { generateDynamicAccompaniment } from '@/ai/flows/generate-dynamic-accompaniment';
 import { Progress } from '@/components/ui/progress';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface JamSessionProps {
   onRoyaltyUpdate: (amount: string, stemId: string) => void;
@@ -22,44 +24,42 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopSession = useCallback(() => {
     setIsRecording(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
-    setStatus("Session stopped.");
+    setStatus("Session ended.");
   }, []);
 
-  const processChunk = async (audioBlob: Blob, videoBlob: Blob) => {
+  const processChunk = async (blob: Blob) => {
     setIsProcessing(true);
     try {
-      const audioDataUri = await blobToDataUri(audioBlob);
-      const videoDataUri = await blobToDataUri(videoBlob);
+      const dataUri = await blobToDataUri(blob);
 
-      setStatus("AI Analyzing context...");
+      setStatus("AI Analyzing performance...");
+      // We send the same blob for both audio and video fields since it's a multimodal webm
       const result = await generateDynamicAccompaniment({
-        audioDataUri,
-        videoDataUri
+        audioDataUri: dataUri,
+        videoDataUri: dataUri
       });
 
       if (result) {
         setBpm(result.bpm);
         setCurrentStem(result.play_stem);
         onRoyaltyUpdate(result.royalty_split, result.play_stem);
-        setStatus("Jamming with: " + result.play_stem.replace(/_/g, ' '));
-        // Simulate energy detection based on BPM for UI visual
+        setStatus("Accompaniment: " + result.play_stem.replace(/_/g, ' '));
         setEnergy(Math.min(100, (result.bpm / 180) * 100));
       }
     } catch (error) {
-      console.error("AI Analysis failed:", error);
-      setStatus("Analysis hiccup. Retrying...");
+      console.error("AI Telemetry failed:", error);
+      setStatus("Telemetry sync error. Retrying...");
     } finally {
       setIsProcessing(false);
     }
@@ -67,64 +67,33 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
 
   const startSession = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 640, height: 480 }, 
+        audio: true 
+      });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
       
       setIsRecording(true);
-      setStatus("Capturing multimodal stream...");
+      setStatus("Capturing biometric stream...");
 
-      // Capture loop
-      intervalRef.current = setInterval(() => {
-        captureSnippet();
-      }, 5000); // Send snippet every 5 seconds for analysis
+      const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          processChunk(event.data);
+        }
+      };
+
+      // Start capturing 3-second rolling chunks
+      mediaRecorder.start(3000);
 
     } catch (err) {
-      console.error("Error accessing media devices:", err);
-      setStatus("Media access denied.");
+      console.error("Hardware access denied:", err);
+      setStatus("Media hardware unavailable.");
     }
-  };
-
-  const captureSnippet = async () => {
-    if (!streamRef.current) return;
-
-    // Use a simple snapshot for video since full video blob is heavy for quick demo flows
-    // In a real app we'd use MediaRecorder for both
-    const videoBlob = await captureVideoFrame();
-    const audioBlob = await captureAudioSnippet();
-
-    if (audioBlob && videoBlob) {
-      processChunk(audioBlob, videoBlob);
-    }
-  };
-
-  const captureVideoFrame = (): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      if (!videoRef.current || !canvasRef.current) return resolve(null);
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve(null);
-      
-      canvas.width = 320;
-      canvas.height = 240;
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.6);
-    });
-  };
-
-  const captureAudioSnippet = (): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      if (!streamRef.current) return resolve(null);
-      
-      const recorder = new MediaRecorder(streamRef.current);
-      const chunks: Blob[] = [];
-      
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = () => resolve(new Blob(chunks, { type: 'audio/webm' }));
-      
-      recorder.start();
-      setTimeout(() => recorder.stop(), 2000); // 2 second audio chunk
-    });
   };
 
   const blobToDataUri = (blob: Blob): Promise<string> => {
@@ -140,39 +109,57 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
   }, [stopSession]);
 
   return (
-    <div className="w-full max-w-5xl space-y-6 animate-in fade-in zoom-in-95 duration-700">
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="w-full max-w-5xl space-y-6"
+    >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Left: Input Monitors */}
+        {/* Left: Multimodal Monitors */}
         <div className="space-y-6 md:col-span-2">
-          <Card className="glass-panel overflow-hidden relative group border-white/5">
-            <div className="aspect-video bg-black/40 flex items-center justify-center relative">
+          <Card className="glass-panel overflow-hidden relative group border-white/5 shadow-2xl">
+            <div className="aspect-video bg-black flex items-center justify-center relative">
               <video 
                 ref={videoRef} 
                 autoPlay 
                 muted 
                 playsInline 
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover transition-opacity duration-700 ${isRecording ? 'opacity-100' : 'opacity-0'}`}
               />
-              <canvas ref={canvasRef} className="hidden" />
               
-              {!isRecording && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm z-10">
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                       <Camera className="w-8 h-8 text-primary" />
+              <AnimatePresence>
+                {!isRecording && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-md z-10"
+                  >
+                    <div className="text-center space-y-4">
+                      <motion.div 
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+                      >
+                         <Camera className="w-10 h-10 text-primary" />
+                      </motion.div>
+                      <p className="text-sm font-medium text-muted-foreground font-headline">Initialize Biometric Sensors</p>
                     </div>
-                    <p className="text-sm font-medium text-muted-foreground">Ready for your performance</p>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* HUD Overlay */}
               {isRecording && (
                 <div className="absolute top-4 left-4 z-20 pointer-events-none">
-                  <Badge className="bg-red-500/80 hover:bg-red-500/80 text-white gap-2 border-none">
-                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    LIVE
+                  <Badge className="bg-red-500/90 hover:bg-red-500/90 text-white gap-2 border-none shadow-lg">
+                    <motion.span 
+                      animate={{ opacity: [1, 0.4, 1] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="w-2 h-2 rounded-full bg-white" 
+                    />
+                    BIO-STREAM LIVE
                   </Badge>
                 </div>
               )}
@@ -180,87 +167,103 @@ export function JamSession({ onRoyaltyUpdate }: JamSessionProps) {
             
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Tempo</p>
-                    <p className="text-2xl font-headline font-bold text-accent">{bpm ? `${bpm} BPM` : '--'}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Tempo</p>
+                    <p className="text-3xl font-headline font-bold text-accent tracking-tighter">
+                      {bpm ? `${Math.round(bpm)}` : '--'} <span className="text-xs text-muted-foreground font-normal">BPM</span>
+                    </p>
                   </div>
-                  <div className="h-10 w-px bg-white/10" />
+                  <div className="h-12 w-px bg-white/10" />
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Status</p>
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      {isProcessing && <RefreshCw className="w-3 h-3 animate-spin text-primary" />}
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Telemetry</p>
+                    <p className="text-sm font-medium flex items-center gap-2 text-foreground/90">
+                      {isProcessing ? (
+                        <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                      ) : (
+                        <Activity className="w-4 h-4 text-accent" />
+                      )}
                       {status}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                   {!isRecording ? (
-                    <Button onClick={startSession} className="bg-primary hover:bg-primary/90 text-white gap-2">
+                    <Button 
+                      onClick={startSession} 
+                      className="bg-primary hover:bg-primary/90 text-white gap-2 px-8 h-12 rounded-full shadow-lg shadow-primary/20 transition-all hover:scale-105"
+                    >
                       <Zap className="w-4 h-4 fill-white" />
-                      Initialize
+                      Start Jamming
                     </Button>
                   ) : (
-                    <Button onClick={stopSession} variant="destructive" className="gap-2">
+                    <Button 
+                      onClick={stopSession} 
+                      variant="destructive" 
+                      className="gap-2 px-8 h-12 rounded-full shadow-lg shadow-destructive/20 transition-all hover:scale-105"
+                    >
                       <StopCircle className="w-4 h-4" />
-                      End Jam
+                      End Session
                     </Button>
                   )}
                 </div>
               </div>
 
-              {/* Visualizer reactive to volume */}
-              <div className="h-16 w-full bg-black/20 rounded-lg border border-white/5 overflow-hidden">
+              {/* Visualizer reactive to sensors */}
+              <div className="h-20 w-full bg-black/40 rounded-xl border border-white/5 overflow-hidden shadow-inner">
                 <Visualizer active={isRecording} bpm={bpm || 0} />
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Right: AI Intelligence Panel */}
+        {/* Right: Agent Intelligence Panel */}
         <div className="space-y-6">
-          <Card className="glass-panel p-6 border-white/5 h-full flex flex-col justify-between">
-            <div className="space-y-8">
+          <Card className="glass-panel p-6 border-white/5 h-full flex flex-col justify-between shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-5">
+              <Activity className="w-24 h-24" />
+            </div>
+            
+            <div className="space-y-8 relative z-10">
               <div className="flex items-center gap-3">
-                <Activity className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-headline font-semibold">AI Intelligence</h3>
+                <div className="p-2 bg-accent/20 rounded-lg">
+                  <Zap className="w-5 h-5 text-accent" />
+                </div>
+                <h3 className="text-lg font-headline font-bold tracking-tight">Agent Decision</h3>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                    <span>Kinetic Energy</span>
-                    <span>{Math.round(energy)}%</span>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    <span>Kinetic Intensity</span>
+                    <span className="text-accent">{Math.round(energy)}%</span>
                   </div>
                   <Progress value={energy} className="h-2 bg-white/5" />
                 </div>
 
-                <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-2">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-widest">Recommended Stem</p>
-                  <p className="text-sm font-medium truncate italic">
-                    {currentStem ? currentStem.replace(/_/g, ' ') : "Analyzing your vibe..."}
+                <motion.div 
+                  key={currentStem}
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="p-5 rounded-2xl bg-primary/10 border border-primary/20 space-y-3 backdrop-blur-sm"
+                >
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Active Heritage Stem</p>
+                  <p className="text-sm font-semibold italic text-foreground leading-relaxed">
+                    {currentStem ? currentStem.replace(/_/g, ' ') : "Awaiting user input..."}
                   </p>
-                </div>
+                </motion.div>
               </div>
             </div>
 
-            <div className="pt-8 space-y-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] leading-relaxed text-center">
-                Ethnomusicologist DJ Agent is currently syncing with heritage database
+            <div className="pt-8 space-y-4 text-center">
+              <p className="text-[9px] text-muted-foreground uppercase tracking-[0.3em] font-medium leading-loose">
+                Syncing with Protected Music Metadata Ledger
               </p>
             </div>
           </Card>
         </div>
 
       </div>
-    </div>
+    </motion.div>
   );
-}
-
-function blobToDataUri(blob: Blob): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.readAsDataURL(blob);
-  });
 }

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview The "AcousticIsle Brain" - A multimodal Genkit flow using Gemini 3 Flash
@@ -57,11 +58,11 @@ const dynamicAccompanimentPrompt = ai.definePrompt({
   prompt: `You are the Lead Orchestrator for AcousticIsle. 
 Use your multimodal vision to cross-reference video and audio telemetry.
 
-1. Analyze Kinetic Energy: Dancing, swaying, or stationary?
-2. Analyze Rhythm: Tapping, humming, or vocalizing?
-3. Retrieve Heritage: Use 'retrieveHeritageStem' to find the best matching indigenous stem.
+1. Analyze Kinetic Energy: Analyze the user's movement (dancing, swaying, or stationary) from the video.
+2. Analyze Rhythm: Detect BPM and rhythmic patterns from the audio.
+3. Retrieve Heritage: Use 'retrieveHeritageStem' to find the best matching indigenous stem from our semantic database.
 
-Calculate a micro-royalty based on usage intensity.
+Calculate a micro-royalty based on usage intensity (more movement = higher intensity).
 
 Input Stream: {{media url=mediaDataUri}}`,
 });
